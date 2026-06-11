@@ -14,6 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("error al abrir la base de datos SQLite: %v", err)
 	}
+	store.SembrarSiVacio()
 	servidor := handlers.NewServer(store)
 
 	r := chi.NewRouter()
