@@ -147,11 +147,14 @@ func (s *SQLiteStorage) SembrarSiVacio() {
 	usuarios := []models.Usuario{
 		{ID: "1", Nombre: "Ana Pérez", Rol: "estudiante", Matricula: "2026001"},
 		{ID: "2", Nombre: "Carlos López", Rol: "docente", Matricula: "2026002"},
+		{ID: "3", Nombre: "Luis Martínez", Rol: "estudiante", Matricula: "2026003"},
 	}
 	s.db.CreateInBatches(&usuarios, 10)
+	s.db.Model(&models.Solicitud{}).Count(&count)
 	solicitudes := []models.Solicitud{
 		{ID: "SOL-1", Pasajero: "1", Chofer: "Manuel Rodriguez", Origen: "Campus", Destino: "Biblioteca", Estado: "pendiente", CreadoEn: time.Now()},
 		{ID: "SOL-2", Pasajero: "2", Chofer: "Albert Lopez", Origen: "Biblioteca", Destino: "Campus", Estado: "aceptada", CreadoEn: time.Now()},
+		{ID: "SOL-3", Pasajero: "3", Chofer: "", Origen: "Residencia", Destino: "Facultad", Estado: "pendiente", CreadoEn: time.Now()},
 	}
 	s.db.CreateInBatches(&solicitudes, 10)
 }

@@ -1,0 +1,81 @@
+Proyecto: Carritos-api (Proyecto_Semestral_AWII_2026_GrupoF)
+
+Resumen:
+- API REST en Go que gestiona `usuarios` y `solicitudes`.
+- Backend persistente: SQLite (GORM + github.com/glebarez/sqlite).
+- Rutas expuestas bajo el prefijo `/api/v1`.
+
+Requisitos:
+- Go 1.26+ instalado
+- (Opcional) curl o Postman para probar endpoints
+
+Instalación y preparación:
+1. Desde la raíz del proyecto:
+
+```bash
+go mod tidy
+```
+
+2. Compilar o ejecutar:
+
+```bash
+go build ./cmd/Carritos-api
+# o para ejecutar directamente
+go run ./cmd/Carritos-api
+```
+
+Arranque:
+- Al ejecutar `go run ./cmd/Carritos-api` se crea/abre `carritos.db` en la raíz.
+- La aplicación realiza `AutoMigrate` para crear tablas de `usuarios` y `solicitudes` si no existen.
+- Función `seedData` inserta datos de ejemplo la primera vez.
+
+Endpoints (prefijo /api/v1):
+- GET  /api/v1/usuarios           — Listar usuarios
+- POST /api/v1/usuarios           — Crear usuario
+- GET  /api/v1/usuarios/{id}      — Obtener usuario
+- PUT  /api/v1/usuarios/{id}      — Actualizar usuario
+- DELETE /api/v1/usuarios/{id}    — Eliminar usuario
+
+- GET  /api/v1/solicitudes        — Listar solicitudes
+- POST /api/v1/solicitudes        — Crear solicitud
+- GET  /api/v1/solicitudes/{id}   — Obtener solicitud
+- PUT  /api/v1/solicitudes/{id}   — Actualizar solicitud
+- DELETE /api/v1/solicitudes/{id} — Eliminar solicitud
+
+- GET /api/v1/provocarerror       — Endpoint para provocar panic (testing)
+
+Notas sobre la base de datos:
+- Archivo SQLite: `carritos.db` en la raíz.
+- Migraciones automáticas con `db.AutoMigrate(&models.Usuario{}, &models.Solicitud{})`.
+- IDs de `Usuario` se manejan como `string` con `gorm:"primaryKey"`.
+
+Estructura principal del proyecto:
+- cmd/Carritos-api/main.go       — Punto de entrada, configuración y seed
+- internal/handlers/            — Handlers HTTP (`Usuarios.go`, `Solicitudes.go`, `responses.go`)
+- internal/models/              — Modelos `Usuario`, `Solicitud`
+- internal/storage/             — Implementación de `SQLiteStorage` (SQLite + GORM)
+
+Cómo probar rápidamente (curl):
+- Listar usuarios:
+
+```bash
+curl http://localhost:8080/api/v1/usuarios
+```
+
+- Crear usuario (ejemplo):
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"nombre":"Prueba","rol":"estudiante","matricula":"000"}' \
+  http://localhost:8080/api/v1/usuarios
+```
+
+Siguientes pasos recomendados:
+- Añadir tests unitarios para `storage`.
+- Añadir una implementación en memoria en `internal/storage/memoria.go` para tests locales.
+- Añadir `README.md` con instrucciones ampliadas y despliegue.
+
+Contacto/Notas del autor:
+- Cambios recientes: corregidos imports de módulo, añadidas funciones `RespondJSON`/`RespondError`, implementado SQLite.
+
+Archivo generado: DOCUMENTACION.txt
