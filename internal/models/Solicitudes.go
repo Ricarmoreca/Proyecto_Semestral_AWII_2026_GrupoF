@@ -5,9 +5,9 @@ import (
 )
 
 type Solicitud struct {
-	ID       string    `json:"id" gorm:"primaryKey"`
-	Pasajero string    `json:"pasajero"`
-	Chofer   string    `json:"chofer"`
+	ID       int       `json:"id" gorm:"primaryKey"`
+	Pasajero int       `json:"pasajero"`
+	Chofer   *string   `json:"chofer"`
 	Origen   string    `json:"origen"`
 	Destino  string    `json:"destino"`
 	Estado   string    `json:"estado"`

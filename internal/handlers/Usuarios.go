@@ -7,20 +7,11 @@ import (
 	"strings"
 
 	"github.com/Ricarmoreca/Proyecto_Semestral_AWII_2026_GrupoF/internal/models"
-	"github.com/Ricarmoreca/Proyecto_Semestral_AWII_2026_GrupoF/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
-type Server struct {
-	Storage storage.Almacen
-}
-
-func NewServer(s storage.Almacen) *Server {
-	return &Server{Storage: s}
-}
-
 func (s *Server) ListarUsuarios(w http.ResponseWriter, _ *http.Request) {
-	usuarios := s.Storage.ListarUsuarios()
+	usuarios := s.Usuarios.Listar()
 	RespondJSON(w, http.StatusOK, usuarios)
 }
 
@@ -31,9 +22,9 @@ func (s *Server) ObtenerUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usuario, encontrado := s.Storage.BuscarUsuarioPorID(id)
-	if !encontrado {
-		RespondError(w, http.StatusNotFound, "usuario no encontrado")
+	usuario, err := s.Usuarios.Obtener(id)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
 
@@ -42,7 +33,6 @@ func (s *Server) ObtenerUsuario(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) CrearUsuario(w http.ResponseWriter, r *http.Request) {
 	var nuevo models.Usuario
-
 	if err := json.NewDecoder(r.Body).Decode(&nuevo); err != nil {
 		RespondError(w, http.StatusBadRequest, "JSON inválido: "+err.Error())
 		return
@@ -53,7 +43,11 @@ func (s *Server) CrearUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	creado := s.Storage.CrearUsuario(nuevo)
+	creado, err := s.Usuarios.Crear(nuevo)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
+		return
+	}
 	RespondJSON(w, http.StatusCreated, creado)
 }
 
@@ -74,9 +68,9 @@ func (s *Server) ActualizarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actualizada, encontrada := s.Storage.ActualizarUsuario(id, datos)
-	if !encontrada {
-		RespondError(w, http.StatusNotFound, "usuario no encontrado")
+	actualizada, err := s.Usuarios.Actualizar(id, datos)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
 
@@ -90,8 +84,8 @@ func (s *Server) EliminarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !s.Storage.BorrarUsuario(id) {
-		RespondError(w, http.StatusNotFound, "usuario no encontrado")
+	if err := s.Usuarios.Borrar(id); err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
 

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Ricarmoreca/Proyecto_Semestral_AWII_2026_GrupoF/internal/models"
@@ -11,7 +12,7 @@ import (
 
 // Estructura auxiliar para leer el cuerpo de la petición al crear viaje
 type RequestCrear struct {
-	PasajeroID string `json:"pasajero_id"`
+	PasajeroID int    `json:"pasajero_id"`
 	Origen     string `json:"origen"`
 	Destino    string `json:"destino"`
 }
@@ -23,20 +24,20 @@ type RequestActualizar struct {
 }
 
 func (s *Server) ListarSolicitudes(w http.ResponseWriter, _ *http.Request) {
-	solicitudes := s.Storage.ListarSolicitudes()
+	solicitudes := s.Solicitudes.Listar()
 	RespondJSON(w, http.StatusOK, solicitudes)
 }
 
 func (s *Server) ObtenerSolicitud(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if strings.TrimSpace(id) == "" {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id de solicitud obligatorio")
 		return
 	}
 
-	solicitud, encontrada := s.Storage.BuscarSolicitudPorID(id)
-	if !encontrada {
-		RespondError(w, http.StatusNotFound, "solicitud no encontrada")
+	solicitud, err := s.Solicitudes.Obtener(id)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
 
@@ -50,7 +51,7 @@ func (s *Server) CrearSolicitud(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(req.PasajeroID) == "" || strings.TrimSpace(req.Origen) == "" || strings.TrimSpace(req.Destino) == "" {
+	if req.PasajeroID == 0 || strings.TrimSpace(req.Origen) == "" || strings.TrimSpace(req.Destino) == "" {
 		RespondError(w, http.StatusBadRequest, "pasajero, origen y destino son obligatorios")
 		return
 	}
@@ -62,13 +63,17 @@ func (s *Server) CrearSolicitud(w http.ResponseWriter, r *http.Request) {
 		Estado:   "pendiente",
 	}
 
-	creada := s.Storage.CrearSolicitud(nuevaSolicitud)
+	creada, err := s.Solicitudes.Crear(nuevaSolicitud)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
+		return
+	}
 	RespondJSON(w, http.StatusCreated, creada)
 }
 
 func (s *Server) ActualizarSolicitud(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if strings.TrimSpace(id) == "" {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id de solicitud obligatorio")
 		return
 	}
@@ -84,9 +89,13 @@ func (s *Server) ActualizarSolicitud(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actualizada, encontrada := s.Storage.ActualizarSolicitud(id, models.Solicitud{Estado: req.Estado, Chofer: req.ChoferID})
-	if !encontrada {
-		RespondError(w, http.StatusNotFound, "solicitud no encontrada")
+	var choferPtr *string
+	if strings.TrimSpace(req.ChoferID) != "" {
+		choferPtr = &req.ChoferID
+	}
+	actualizada, err := s.Solicitudes.Actualizar(id, models.Solicitud{Estado: req.Estado, Chofer: choferPtr})
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
 
@@ -94,14 +103,14 @@ func (s *Server) ActualizarSolicitud(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) EliminarSolicitud(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if strings.TrimSpace(id) == "" {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id de solicitud obligatorio")
 		return
 	}
 
-	if !s.Storage.BorrarSolicitud(id) {
-		RespondError(w, http.StatusNotFound, "solicitud no encontrada")
+	if err := s.Solicitudes.Borrar(id); err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
 
