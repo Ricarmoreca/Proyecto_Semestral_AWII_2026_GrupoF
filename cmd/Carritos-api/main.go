@@ -7,7 +7,7 @@ import (
 	"os"
 
 	_ "github.com/glebarez/go-sqlite" // driver database/sql "sqlite" (pure-Go) para el backend sqlc
-	"github.com/glebarez/sqlite"    // driver GORM (pure-Go)
+	"github.com/glebarez/sqlite"      // driver GORM (pure-Go)
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"gorm.io/gorm"
@@ -64,6 +64,8 @@ func main() {
 		r.Post("/auth/register", servidor.Registrar)
 		r.Post("/login", servidor.Login)
 		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(authService))
+
 			r.Get("/usuarios", servidor.ListarUsuarios)
 			r.Post("/usuarios", servidor.CrearUsuario)
 			r.Get("/usuarios/{id}", servidor.ObtenerUsuario)
