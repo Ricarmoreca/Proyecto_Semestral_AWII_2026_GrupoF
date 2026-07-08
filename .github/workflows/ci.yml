@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: 1
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Descargar dependencias
+        run: go mod download
+
+      - name: Compilar proyecto
+        run: go build ./...
+
+      - name: Ejecutar vet
+        run: go vet ./...
+
+      - name: Ejecutar pruebas
+        run: go test -v ./...
+
+      - name: Construir imagen Docker
+        run: docker build -t carritos-api:ci .
