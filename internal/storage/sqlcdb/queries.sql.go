@@ -10,6 +10,139 @@ import (
 	"database/sql"
 )
 
+const actualizarCarrito = `-- name: ActualizarCarrito :one
+UPDATE carritos
+SET estado_carrito = ?, capacidad_pasajeros = ?, color = ?
+WHERE numero_carrito = ?
+RETURNING numero_carrito, estado_carrito, capacidad_pasajeros, color
+`
+
+type ActualizarCarritoParams struct {
+	EstadoCarrito      string
+	CapacidadPasajeros int64
+	Color              string
+	NumeroCarrito      int64
+}
+
+func (q *Queries) ActualizarCarrito(ctx context.Context, arg ActualizarCarritoParams) (Carrito, error) {
+	row := q.db.QueryRowContext(ctx, actualizarCarrito,
+		arg.EstadoCarrito,
+		arg.CapacidadPasajeros,
+		arg.Color,
+		arg.NumeroCarrito,
+	)
+	var i Carrito
+	err := row.Scan(
+		&i.NumeroCarrito,
+		&i.EstadoCarrito,
+		&i.CapacidadPasajeros,
+		&i.Color,
+	)
+	return i, err
+}
+
+const actualizarChofer = `-- name: ActualizarChofer :one
+UPDATE choferes
+SET nombre_chofer = ?, licencia = ?, celular = ?, estado_chofer = ?
+WHERE id_chofer = ?
+RETURNING id_chofer, nombre_chofer, licencia, celular, estado_chofer
+`
+
+type ActualizarChoferParams struct {
+	NombreChofer string
+	Licencia     string
+	Celular      string
+	EstadoChofer string
+	IDChofer     int64
+}
+
+func (q *Queries) ActualizarChofer(ctx context.Context, arg ActualizarChoferParams) (Chofere, error) {
+	row := q.db.QueryRowContext(ctx, actualizarChofer,
+		arg.NombreChofer,
+		arg.Licencia,
+		arg.Celular,
+		arg.EstadoChofer,
+		arg.IDChofer,
+	)
+	var i Chofere
+	err := row.Scan(
+		&i.IDChofer,
+		&i.NombreChofer,
+		&i.Licencia,
+		&i.Celular,
+		&i.EstadoChofer,
+	)
+	return i, err
+}
+
+const actualizarDespacho = `-- name: ActualizarDespacho :one
+UPDATE despachos_diarios
+SET fecha = ?, numero_carrito = ?, id_horario = ?, id_chofer = ?, pasajeros_actuales = ?
+WHERE id_despacho = ?
+RETURNING id_despacho, fecha, numero_carrito, id_horario, id_chofer, pasajeros_actuales
+`
+
+type ActualizarDespachoParams struct {
+	Fecha             string
+	NumeroCarrito     int64
+	IDHorario         int64
+	IDChofer          int64
+	PasajerosActuales int64
+	IDDespacho        int64
+}
+
+func (q *Queries) ActualizarDespacho(ctx context.Context, arg ActualizarDespachoParams) (DespachosDiario, error) {
+	row := q.db.QueryRowContext(ctx, actualizarDespacho,
+		arg.Fecha,
+		arg.NumeroCarrito,
+		arg.IDHorario,
+		arg.IDChofer,
+		arg.PasajerosActuales,
+		arg.IDDespacho,
+	)
+	var i DespachosDiario
+	err := row.Scan(
+		&i.IDDespacho,
+		&i.Fecha,
+		&i.NumeroCarrito,
+		&i.IDHorario,
+		&i.IDChofer,
+		&i.PasajerosActuales,
+	)
+	return i, err
+}
+
+const actualizarHorario = `-- name: ActualizarHorario :one
+UPDATE horarios
+SET turno = ?, hora_inicio = ?, hora_fin = ?
+WHERE id_horario = ?
+RETURNING id_horario, turno, hora_inicio, hora_fin
+`
+
+type ActualizarHorarioParams struct {
+	Turno      string
+	HoraInicio string
+	HoraFin    string
+	IDHorario  int64
+}
+
+func (q *Queries) ActualizarHorario(ctx context.Context, arg ActualizarHorarioParams) (Horario, error) {
+	row := q.db.QueryRowContext(ctx, actualizarHorario,
+		arg.Turno,
+		arg.HoraInicio,
+		arg.HoraFin,
+		arg.IDHorario,
+	)
+	var i Horario
+	err := row.Scan(
+		&i.IDHorario,
+		&i.Turno,
+		&i.HoraInicio,
+		&i.HoraFin,
+	)
+	return i, err
+}
+
 const actualizarSolicitud = `-- name: ActualizarSolicitud :one
 UPDATE solicitudes
 SET estado = ?, chofer = COALESCE(?, chofer)
@@ -69,6 +202,27 @@ func (q *Queries) ActualizarUsuario(ctx context.Context, arg ActualizarUsuarioPa
 	return i, err
 }
 
+const asignarCarritoHorario = `-- name: AsignarCarritoHorario :one
+
+INSERT INTO carrito_horario (numero_carrito, id_horario, hora_asignacion)
+VALUES (?, ?, ?)
+RETURNING numero_carrito, id_horario, hora_asignacion
+`
+
+type AsignarCarritoHorarioParams struct {
+	NumeroCarrito  int64
+	IDHorario      int64
+	HoraAsignacion string
+}
+
+// =========== CARRITO-HORARIO ============
+func (q *Queries) AsignarCarritoHorario(ctx context.Context, arg AsignarCarritoHorarioParams) (CarritoHorario, error) {
+	row := q.db.QueryRowContext(ctx, asignarCarritoHorario, arg.NumeroCarrito, arg.IDHorario, arg.HoraAsignacion)
+	var i CarritoHorario
+	err := row.Scan(&i.NumeroCarrito, &i.IDHorario, &i.HoraAsignacion)
+	return i, err
+}
+
 const asignarChofer = `-- name: AsignarChofer :one
 UPDATE solicitudes
 SET chofer = ?
@@ -96,6 +250,54 @@ func (q *Queries) AsignarChofer(ctx context.Context, arg AsignarChoferParams) (S
 	return i, err
 }
 
+const borrarCarrito = `-- name: BorrarCarrito :execrows
+DELETE FROM carritos WHERE numero_carrito = ?
+`
+
+func (q *Queries) BorrarCarrito(ctx context.Context, numeroCarrito int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarCarrito, numeroCarrito)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const borrarChofer = `-- name: BorrarChofer :execrows
+DELETE FROM choferes WHERE id_chofer = ?
+`
+
+func (q *Queries) BorrarChofer(ctx context.Context, idChofer int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarChofer, idChofer)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const borrarDespacho = `-- name: BorrarDespacho :execrows
+DELETE FROM despachos_diarios WHERE id_despacho = ?
+`
+
+func (q *Queries) BorrarDespacho(ctx context.Context, idDespacho int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarDespacho, idDespacho)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const borrarHorario = `-- name: BorrarHorario :execrows
+DELETE FROM horarios WHERE id_horario = ?
+`
+
+func (q *Queries) BorrarHorario(ctx context.Context, idHorario int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarHorario, idHorario)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const borrarSolicitud = `-- name: BorrarSolicitud :execrows
 DELETE FROM solicitudes WHERE id = ?
 `
@@ -118,6 +320,77 @@ func (q *Queries) BorrarUsuario(ctx context.Context, id int64) (int64, error) {
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const buscarCarritoPorID = `-- name: BuscarCarritoPorID :one
+SELECT numero_carrito, estado_carrito, capacidad_pasajeros, color FROM carritos
+WHERE numero_carrito = ?
+`
+
+func (q *Queries) BuscarCarritoPorID(ctx context.Context, numeroCarrito int64) (Carrito, error) {
+	row := q.db.QueryRowContext(ctx, buscarCarritoPorID, numeroCarrito)
+	var i Carrito
+	err := row.Scan(
+		&i.NumeroCarrito,
+		&i.EstadoCarrito,
+		&i.CapacidadPasajeros,
+		&i.Color,
+	)
+	return i, err
+}
+
+const buscarChoferPorID = `-- name: BuscarChoferPorID :one
+SELECT id_chofer, nombre_chofer, licencia, celular, estado_chofer FROM choferes
+WHERE id_chofer = ?
+`
+
+func (q *Queries) BuscarChoferPorID(ctx context.Context, idChofer int64) (Chofere, error) {
+	row := q.db.QueryRowContext(ctx, buscarChoferPorID, idChofer)
+	var i Chofere
+	err := row.Scan(
+		&i.IDChofer,
+		&i.NombreChofer,
+		&i.Licencia,
+		&i.Celular,
+		&i.EstadoChofer,
+	)
+	return i, err
+}
+
+const buscarDespachoPorID = `-- name: BuscarDespachoPorID :one
+SELECT id_despacho, fecha, numero_carrito, id_horario, id_chofer, pasajeros_actuales FROM despachos_diarios
+WHERE id_despacho = ?
+`
+
+func (q *Queries) BuscarDespachoPorID(ctx context.Context, idDespacho int64) (DespachosDiario, error) {
+	row := q.db.QueryRowContext(ctx, buscarDespachoPorID, idDespacho)
+	var i DespachosDiario
+	err := row.Scan(
+		&i.IDDespacho,
+		&i.Fecha,
+		&i.NumeroCarrito,
+		&i.IDHorario,
+		&i.IDChofer,
+		&i.PasajerosActuales,
+	)
+	return i, err
+}
+
+const buscarHorarioPorID = `-- name: BuscarHorarioPorID :one
+SELECT id_horario, turno, hora_inicio, hora_fin FROM horarios
+WHERE id_horario = ?
+`
+
+func (q *Queries) BuscarHorarioPorID(ctx context.Context, idHorario int64) (Horario, error) {
+	row := q.db.QueryRowContext(ctx, buscarHorarioPorID, idHorario)
+	var i Horario
+	err := row.Scan(
+		&i.IDHorario,
+		&i.Turno,
+		&i.HoraInicio,
+		&i.HoraFin,
+	)
+	return i, err
 }
 
 const buscarSolicitudPorID = `-- name: BuscarSolicitudPorID :one
@@ -153,6 +426,125 @@ func (q *Queries) BuscarUsuarioPorID(ctx context.Context, id int64) (Usuario, er
 		&i.Nombre,
 		&i.Rol,
 		&i.Matricula,
+	)
+	return i, err
+}
+
+const crearCarrito = `-- name: CrearCarrito :one
+INSERT INTO carritos (numero_carrito, estado_carrito, capacidad_pasajeros, color)
+VALUES (?, ?, ?, ?)
+RETURNING numero_carrito, estado_carrito, capacidad_pasajeros, color
+`
+
+type CrearCarritoParams struct {
+	NumeroCarrito      int64
+	EstadoCarrito      string
+	CapacidadPasajeros int64
+	Color              string
+}
+
+func (q *Queries) CrearCarrito(ctx context.Context, arg CrearCarritoParams) (Carrito, error) {
+	row := q.db.QueryRowContext(ctx, crearCarrito,
+		arg.NumeroCarrito,
+		arg.EstadoCarrito,
+		arg.CapacidadPasajeros,
+		arg.Color,
+	)
+	var i Carrito
+	err := row.Scan(
+		&i.NumeroCarrito,
+		&i.EstadoCarrito,
+		&i.CapacidadPasajeros,
+		&i.Color,
+	)
+	return i, err
+}
+
+const crearChofer = `-- name: CrearChofer :one
+INSERT INTO choferes (nombre_chofer, licencia, celular, estado_chofer)
+VALUES (?, ?, ?, ?)
+RETURNING id_chofer, nombre_chofer, licencia, celular, estado_chofer
+`
+
+type CrearChoferParams struct {
+	NombreChofer string
+	Licencia     string
+	Celular      string
+	EstadoChofer string
+}
+
+func (q *Queries) CrearChofer(ctx context.Context, arg CrearChoferParams) (Chofere, error) {
+	row := q.db.QueryRowContext(ctx, crearChofer,
+		arg.NombreChofer,
+		arg.Licencia,
+		arg.Celular,
+		arg.EstadoChofer,
+	)
+	var i Chofere
+	err := row.Scan(
+		&i.IDChofer,
+		&i.NombreChofer,
+		&i.Licencia,
+		&i.Celular,
+		&i.EstadoChofer,
+	)
+	return i, err
+}
+
+const crearDespacho = `-- name: CrearDespacho :one
+INSERT INTO despachos_diarios (fecha, numero_carrito, id_horario, id_chofer, pasajeros_actuales)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id_despacho, fecha, numero_carrito, id_horario, id_chofer, pasajeros_actuales
+`
+
+type CrearDespachoParams struct {
+	Fecha             string
+	NumeroCarrito     int64
+	IDHorario         int64
+	IDChofer          int64
+	PasajerosActuales int64
+}
+
+func (q *Queries) CrearDespacho(ctx context.Context, arg CrearDespachoParams) (DespachosDiario, error) {
+	row := q.db.QueryRowContext(ctx, crearDespacho,
+		arg.Fecha,
+		arg.NumeroCarrito,
+		arg.IDHorario,
+		arg.IDChofer,
+		arg.PasajerosActuales,
+	)
+	var i DespachosDiario
+	err := row.Scan(
+		&i.IDDespacho,
+		&i.Fecha,
+		&i.NumeroCarrito,
+		&i.IDHorario,
+		&i.IDChofer,
+		&i.PasajerosActuales,
+	)
+	return i, err
+}
+
+const crearHorario = `-- name: CrearHorario :one
+INSERT INTO horarios (turno, hora_inicio, hora_fin)
+VALUES (?, ?, ?)
+RETURNING id_horario, turno, hora_inicio, hora_fin
+`
+
+type CrearHorarioParams struct {
+	Turno      string
+	HoraInicio string
+	HoraFin    string
+}
+
+func (q *Queries) CrearHorario(ctx context.Context, arg CrearHorarioParams) (Horario, error) {
+	row := q.db.QueryRowContext(ctx, crearHorario, arg.Turno, arg.HoraInicio, arg.HoraFin)
+	var i Horario
+	err := row.Scan(
+		&i.IDHorario,
+		&i.Turno,
+		&i.HoraInicio,
+		&i.HoraFin,
 	)
 	return i, err
 }
@@ -206,6 +598,162 @@ func (q *Queries) CrearUsuario(ctx context.Context, arg CrearUsuarioParams) (Usu
 		&i.Matricula,
 	)
 	return i, err
+}
+
+const deasignarCarritoHorario = `-- name: DeasignarCarritoHorario :execrows
+DELETE FROM carrito_horario WHERE numero_carrito = ? AND id_horario = ?
+`
+
+type DeasignarCarritoHorarioParams struct {
+	NumeroCarrito int64
+	IDHorario     int64
+}
+
+func (q *Queries) DeasignarCarritoHorario(ctx context.Context, arg DeasignarCarritoHorarioParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deasignarCarritoHorario, arg.NumeroCarrito, arg.IDHorario)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const listarCarritos = `-- name: ListarCarritos :many
+
+SELECT numero_carrito, estado_carrito, capacidad_pasajeros, color FROM carritos
+`
+
+// =========== CARRITOS ====================
+func (q *Queries) ListarCarritos(ctx context.Context) ([]Carrito, error) {
+	rows, err := q.db.QueryContext(ctx, listarCarritos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Carrito
+	for rows.Next() {
+		var i Carrito
+		if err := rows.Scan(
+			&i.NumeroCarrito,
+			&i.EstadoCarrito,
+			&i.CapacidadPasajeros,
+			&i.Color,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listarChoferes = `-- name: ListarChoferes :many
+
+SELECT id_chofer, nombre_chofer, licencia, celular, estado_chofer FROM choferes
+`
+
+// =========== CHOFERES ====================
+func (q *Queries) ListarChoferes(ctx context.Context) ([]Chofere, error) {
+	rows, err := q.db.QueryContext(ctx, listarChoferes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Chofere
+	for rows.Next() {
+		var i Chofere
+		if err := rows.Scan(
+			&i.IDChofer,
+			&i.NombreChofer,
+			&i.Licencia,
+			&i.Celular,
+			&i.EstadoChofer,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listarDespachos = `-- name: ListarDespachos :many
+
+SELECT id_despacho, fecha, numero_carrito, id_horario, id_chofer, pasajeros_actuales FROM despachos_diarios
+`
+
+// =========== DESPACHOS ==================
+func (q *Queries) ListarDespachos(ctx context.Context) ([]DespachosDiario, error) {
+	rows, err := q.db.QueryContext(ctx, listarDespachos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DespachosDiario
+	for rows.Next() {
+		var i DespachosDiario
+		if err := rows.Scan(
+			&i.IDDespacho,
+			&i.Fecha,
+			&i.NumeroCarrito,
+			&i.IDHorario,
+			&i.IDChofer,
+			&i.PasajerosActuales,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listarHorarios = `-- name: ListarHorarios :many
+
+SELECT id_horario, turno, hora_inicio, hora_fin FROM horarios
+`
+
+// =========== HORARIOS ====================
+func (q *Queries) ListarHorarios(ctx context.Context) ([]Horario, error) {
+	rows, err := q.db.QueryContext(ctx, listarHorarios)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Horario
+	for rows.Next() {
+		var i Horario
+		if err := rows.Scan(
+			&i.IDHorario,
+			&i.Turno,
+			&i.HoraInicio,
+			&i.HoraFin,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listarSolicitudes = `-- name: ListarSolicitudes :many

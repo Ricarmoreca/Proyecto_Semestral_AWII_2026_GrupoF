@@ -12,6 +12,216 @@ type AlmacenSQLite struct {
 	db *gorm.DB
 }
 
+// ActualizarCarrito implements [Almacen].
+func (a *AlmacenSQLite) ActualizarCarrito(id int, datos models.Carrito) (models.Carrito, bool) {
+	var existente models.Carrito
+	if err := a.db.First(&existente, id).Error; err != nil {
+		return models.Carrito{}, false
+	}
+	datos.Numero = id
+	a.db.Save(&datos)
+	return datos, true
+}
+
+// ActualizarChofer implements [Almacen].
+func (a *AlmacenSQLite) ActualizarChofer(id int, datos models.Chofer) (models.Chofer, bool) {
+	var existente models.Chofer
+	if err := a.db.First(&existente, id).Error; err != nil {
+		return models.Chofer{}, false
+	}
+	datos.ID = id
+	a.db.Save(&datos)
+	return datos, true
+}
+
+// ActualizarDespachoDiario implements [Almacen].
+func (a *AlmacenSQLite) ActualizarDespachoDiario(id int, datos models.DespachoDiario) (models.DespachoDiario, bool) {
+	var existente models.DespachoDiario
+	if err := a.db.First(&existente, id).Error; err != nil {
+		return models.DespachoDiario{}, false
+	}
+	datos.ID = id
+	a.db.Save(&datos)
+	return datos, true
+}
+
+// AsignarCarritoHorario implements [Almacen].
+func (a *AlmacenSQLite) AsignarCarritoHorario(carritoID int, horarioID int) (models.CarritoHorario, bool) {
+	rel := models.CarritoHorarioRel{NumeroCarrito: carritoID, IDHorario: horarioID}
+	if err := a.db.Create(&rel).Error; err != nil {
+		return models.CarritoHorario{}, false
+	}
+	return models.CarritoHorario{NumeroCarrito: carritoID, IDHorario: horarioID}, true
+}
+
+// BorrarCarrito implements [Almacen].
+func (a *AlmacenSQLite) BorrarCarrito(id int) bool {
+	res := a.db.Delete(&models.Carrito{}, id)
+	return res.RowsAffected > 0
+}
+
+// BorrarChofer implements [Almacen].
+func (a *AlmacenSQLite) BorrarChofer(id int) bool {
+	res := a.db.Delete(&models.Chofer{}, id)
+	return res.RowsAffected > 0
+}
+
+// BorrarDespachoDiario implements [Almacen].
+func (a *AlmacenSQLite) BorrarDespachoDiario(id int) bool {
+	res := a.db.Delete(&models.DespachoDiario{}, id)
+	return res.RowsAffected > 0
+}
+
+// BuscarCarritoPorID implements [Almacen].
+func (a *AlmacenSQLite) BuscarCarritoPorID(id int) (models.Carrito, bool) {
+	var carrito models.Carrito
+	if err := a.db.First(&carrito, id).Error; err != nil {
+		return models.Carrito{}, false
+	}
+	return carrito, true
+}
+
+// BuscarChoferPorID implements [Almacen].
+func (a *AlmacenSQLite) BuscarChoferPorID(id int) (models.Chofer, bool) {
+	var chofer models.Chofer
+	if err := a.db.First(&chofer, id).Error; err != nil {
+		return models.Chofer{}, false
+	}
+	return chofer, true
+}
+
+// BuscarDespachoDiarioPorID implements [Almacen].
+func (a *AlmacenSQLite) BuscarDespachoDiarioPorID(id int) (models.DespachoDiario, bool) {
+	var despacho models.DespachoDiario
+	if err := a.db.First(&despacho, id).Error; err != nil {
+		return models.DespachoDiario{}, false
+	}
+	return despacho, true
+}
+
+// CrearCarrito implements [Almacen].
+func (a *AlmacenSQLite) CrearCarrito(c models.Carrito) models.Carrito {
+	a.db.Create(&c)
+	return c
+}
+
+// CrearChofer implements [Almacen].
+func (a *AlmacenSQLite) CrearChofer(c models.Chofer) models.Chofer {
+	a.db.Create(&c)
+	return c
+}
+
+// CrearDespachoDiario implements [Almacen].
+func (a *AlmacenSQLite) CrearDespachoDiario(d models.DespachoDiario) models.DespachoDiario {
+	a.db.Create(&d)
+	return d
+}
+
+// DeasignarCarritoHorario implements [Almacen].
+func (a *AlmacenSQLite) DeasignarCarritoHorario(carritoID int, horarioID int) bool {
+	res := a.db.Delete(&models.CarritoHorarioRel{}, "numero_carrito = ? AND id_horario = ?", carritoID, horarioID)
+	return res.RowsAffected > 0
+}
+
+// ListarCarritos implements [Almacen].
+func (a *AlmacenSQLite) ListarCarritos() []models.Carrito {
+	var carritos []models.Carrito
+	a.db.Find(&carritos)
+	return carritos
+}
+
+// ListarChoferes implements [Almacen].
+func (a *AlmacenSQLite) ListarChoferes() []models.Chofer {
+	var choferes []models.Chofer
+	a.db.Find(&choferes)
+	return choferes
+}
+
+// ListarDespachosDiarios implements [Almacen].
+func (a *AlmacenSQLite) ListarDespachosDiarios() []models.DespachoDiario {
+	var despachos []models.DespachoDiario
+	a.db.Find(&despachos)
+	return despachos
+}
+
+// ListarHorarios implements [Almacen].
+func (a *AlmacenSQLite) ListarHorarios() []models.Horario {
+	var horarios []models.Horario
+	a.db.Find(&horarios)
+	return horarios
+}
+
+// BuscarHorarioPorID implements [Almacen].
+func (a *AlmacenSQLite) BuscarHorarioPorID(id int) (models.Horario, bool) {
+	var horario models.Horario
+	if err := a.db.First(&horario, id).Error; err != nil {
+		return models.Horario{}, false
+	}
+	return horario, true
+}
+
+// CrearHorario implements [Almacen].
+func (a *AlmacenSQLite) CrearHorario(h models.Horario) models.Horario {
+	a.db.Create(&h)
+	return h
+}
+
+// ActualizarHorario implements [Almacen].
+func (a *AlmacenSQLite) ActualizarHorario(id int, datos models.Horario) (models.Horario, bool) {
+	var existente models.Horario
+	if err := a.db.First(&existente, id).Error; err != nil {
+		return models.Horario{}, false
+	}
+	datos.ID = id
+	a.db.Save(&datos)
+	return datos, true
+}
+
+// BorrarHorario implements [Almacen].
+func (a *AlmacenSQLite) BorrarHorario(id int) bool {
+	res := a.db.Delete(&models.Horario{}, id)
+	return res.RowsAffected > 0
+}
+
+// ListarMantenimientos implements [Almacen].
+func (a *AlmacenSQLite) ListarMantenimientos() []models.Mantenimiento {
+	var mantenimientos []models.Mantenimiento
+	a.db.Find(&mantenimientos)
+	return mantenimientos
+}
+
+// BuscarMantenimientoPorID implements [Almacen].
+func (a *AlmacenSQLite) BuscarMantenimientoPorID(id int) (models.Mantenimiento, bool) {
+	var mantenimiento models.Mantenimiento
+	if err := a.db.First(&mantenimiento, id).Error; err != nil {
+		return models.Mantenimiento{}, false
+	}
+	return mantenimiento, true
+}
+
+// CrearMantenimiento implements [Almacen].
+func (a *AlmacenSQLite) CrearMantenimiento(m models.Mantenimiento) models.Mantenimiento {
+	a.db.Create(&m)
+	return m
+}
+
+// ActualizarMantenimiento implements [Almacen].
+func (a *AlmacenSQLite) ActualizarMantenimiento(id int, datos models.Mantenimiento) (models.Mantenimiento, bool) {
+	var existente models.Mantenimiento
+	if err := a.db.First(&existente, id).Error; err != nil {
+		return models.Mantenimiento{}, false
+	}
+	datos.ID = id
+	a.db.Save(&datos)
+	return datos, true
+}
+
+// BorrarMantenimiento implements [Almacen].
+func (a *AlmacenSQLite) BorrarMantenimiento(id int) bool {
+	res := a.db.Delete(&models.Mantenimiento{}, id)
+	return res.RowsAffected > 0
+}
+
 func NuevoAlmacenSQLite(db *gorm.DB) *AlmacenSQLite {
 	return &AlmacenSQLite{db: db}
 }
@@ -21,7 +231,7 @@ func NewSQLiteStorage(path string) (*AlmacenSQLite, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := db.AutoMigrate(&models.Usuario{}, &models.Solicitud{}); err != nil {
+	if err := db.AutoMigrate(&models.Usuario{}, &models.Solicitud{}, &models.Mantenimiento{}); err != nil {
 		return nil, err
 	}
 	return NuevoAlmacenSQLite(db), nil
@@ -131,4 +341,11 @@ func (a *AlmacenSQLite) SembrarSiVacio() {
 		{ID: 3, Pasajero: 3, Chofer: nil, Origen: "Residencia", Destino: "Facultad", Estado: "pendiente", CreadoEn: time.Now()},
 	}
 	a.db.Create(&solicitudes)
+
+	mantenimientos := []models.Mantenimiento{
+		{ID: 1, FechaMantenimiento: "2026-07-08", Descripcion: "Revisión de aceite y filtros", EstadoMantenimiento: "Pendiente", NumeroCarrito: "001"},
+		{ID: 2, FechaMantenimiento: "2026-07-09", Descripcion: "Cambio de llantas", EstadoMantenimiento: "En Progreso", NumeroCarrito: "002"},
+		{ID: 3, FechaMantenimiento: "2026-07-10", Descripcion: "Revisión de frenos", EstadoMantenimiento: "Completado", NumeroCarrito: "003"},
+	}
+	a.db.Create(&mantenimientos)
 }

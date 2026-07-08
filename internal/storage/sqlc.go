@@ -14,6 +14,116 @@ type AlmacenSQLC struct {
 	q *sqlcdb.Queries
 }
 
+// ActualizarCarrito implements [Almacen].
+func (a *AlmacenSQLC) ActualizarCarrito(id int, datos models.Carrito) (models.Carrito, bool) {
+	panic("unimplemented")
+}
+
+// ActualizarChofer implements [Almacen].
+func (a *AlmacenSQLC) ActualizarChofer(id int, datos models.Chofer) (models.Chofer, bool) {
+	panic("unimplemented")
+}
+
+// ActualizarDespachoDiario implements [Almacen].
+func (a *AlmacenSQLC) ActualizarDespachoDiario(id int, datos models.DespachoDiario) (models.DespachoDiario, bool) {
+	panic("unimplemented")
+}
+
+// AsignarCarritoHorario implements [Almacen].
+func (a *AlmacenSQLC) AsignarCarritoHorario(carritoID int, horarioID int) (models.CarritoHorario, bool) {
+	panic("unimplemented")
+}
+
+// BorrarCarrito implements [Almacen].
+func (a *AlmacenSQLC) BorrarCarrito(id int) bool {
+	panic("unimplemented")
+}
+
+// BorrarChofer implements [Almacen].
+func (a *AlmacenSQLC) BorrarChofer(id int) bool {
+	panic("unimplemented")
+}
+
+// BorrarDespachoDiario implements [Almacen].
+func (a *AlmacenSQLC) BorrarDespachoDiario(id int) bool {
+	panic("unimplemented")
+}
+
+// BuscarCarritoPorID implements [Almacen].
+func (a *AlmacenSQLC) BuscarCarritoPorID(id int) (models.Carrito, bool) {
+	panic("unimplemented")
+}
+
+// BuscarChoferPorID implements [Almacen].
+func (a *AlmacenSQLC) BuscarChoferPorID(id int) (models.Chofer, bool) {
+	panic("unimplemented")
+}
+
+// BuscarDespachoDiarioPorID implements [Almacen].
+func (a *AlmacenSQLC) BuscarDespachoDiarioPorID(id int) (models.DespachoDiario, bool) {
+	panic("unimplemented")
+}
+
+// CrearCarrito implements [Almacen].
+func (a *AlmacenSQLC) CrearCarrito(models.Carrito) models.Carrito {
+	panic("unimplemented")
+}
+
+// CrearChofer implements [Almacen].
+func (a *AlmacenSQLC) CrearChofer(models.Chofer) models.Chofer {
+	panic("unimplemented")
+}
+
+// CrearDespachoDiario implements [Almacen].
+func (a *AlmacenSQLC) CrearDespachoDiario(models.DespachoDiario) models.DespachoDiario {
+	panic("unimplemented")
+}
+
+// DeasignarCarritoHorario implements [Almacen].
+func (a *AlmacenSQLC) DeasignarCarritoHorario(carritoID int, horarioID int) bool {
+	panic("unimplemented")
+}
+
+// ListarCarritos implements [Almacen].
+func (a *AlmacenSQLC) ListarCarritos() []models.Carrito {
+	panic("unimplemented")
+}
+
+// ListarChoferes implements [Almacen].
+func (a *AlmacenSQLC) ListarChoferes() []models.Chofer {
+	panic("unimplemented")
+}
+
+// ListarDespachosDiarios implements [Almacen].
+func (a *AlmacenSQLC) ListarDespachosDiarios() []models.DespachoDiario {
+	panic("unimplemented")
+}
+
+// ListarHorarios implements [Almacen].
+func (a *AlmacenSQLC) ListarHorarios() []models.Horario {
+	return nil
+}
+
+// BuscarHorarioPorID implements [Almacen].
+func (a *AlmacenSQLC) BuscarHorarioPorID(id int) (models.Horario, bool) {
+	return models.Horario{}, false
+}
+
+// CrearHorario implements [Almacen].
+func (a *AlmacenSQLC) CrearHorario(models.Horario) models.Horario {
+	return models.Horario{}
+}
+
+// ActualizarHorario implements [Almacen].
+func (a *AlmacenSQLC) ActualizarHorario(id int, datos models.Horario) (models.Horario, bool) {
+	return models.Horario{}, false
+}
+
+// BorrarHorario implements [Almacen].
+func (a *AlmacenSQLC) BorrarHorario(id int) bool {
+	return false
+}
+
 func NuevoAlmacenSQLC(db *sql.DB) *AlmacenSQLC {
 	return &AlmacenSQLC{q: sqlcdb.New(db)}
 }
@@ -171,4 +281,29 @@ func (a *AlmacenSQLC) AsignarChofer(id int, choferId string) (models.Solicitud, 
 	}
 
 	return aSolicitudesDominio(s), true
+}
+
+// ListarMantenimientos implements [Almacen].
+func (a *AlmacenSQLC) ListarMantenimientos() []models.Mantenimiento {
+	return []models.Mantenimiento{}
+}
+
+// BuscarMantenimientoPorID implements [Almacen].
+func (a *AlmacenSQLC) BuscarMantenimientoPorID(id int) (models.Mantenimiento, bool) {
+	return models.Mantenimiento{}, false
+}
+
+// CrearMantenimiento implements [Almacen].
+func (a *AlmacenSQLC) CrearMantenimiento(m models.Mantenimiento) models.Mantenimiento {
+	return models.Mantenimiento{}
+}
+
+// ActualizarMantenimiento implements [Almacen].
+func (a *AlmacenSQLC) ActualizarMantenimiento(id int, datos models.Mantenimiento) (models.Mantenimiento, bool) {
+	return models.Mantenimiento{}, false
+}
+
+// BorrarMantenimiento implements [Almacen].
+func (a *AlmacenSQLC) BorrarMantenimiento(id int) bool {
+	return false
 }

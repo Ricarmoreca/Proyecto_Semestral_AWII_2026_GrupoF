@@ -20,8 +20,14 @@ var (
 	ErrChoferNoAsignado   = errors.New("chofer no asignado")
 	ErrChoferNoEncontrado = errors.New("chofer no encontrado")
 
+	// Errores de mantenimiento
+	ErrMantenimientoNoEncontrado = errors.New("mantenimiento no encontrado")
+
 	// Errores genéricos
 	ErrCamposObligatorios   = errors.New("faltan campos obligatorios")
 	ErrOperacionNoPermitida = errors.New("operación no permitida")
 	ErrBaseDeDatos          = errors.New("error en la base de datos")
+
+	ErrNotFound = errors.New("recurso no encontrado")
+	ErrConflict = errors.New("el recurso ya existe")
 )

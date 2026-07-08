@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explicación del Proyecto Carritos API</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.7; }
+        .container { max-width: 900px; margin: 0 auto; padding: 30px 20px; }
+        h1 { color: #58a6ff; font-size: 2em; margin-bottom: 10px; border-bottom: 2px solid #30363d; padding-bottom: 10px; }
+        h2 { color: #79c0ff; font-size: 1.4em; margin-top: 35px; margin-bottom: 12px; }
+        h3 { color: #d2a8ff; font-size: 1.1em; margin-top: 20px; margin-bottom: 8px; }
+        p { margin-bottom: 12px; }
+        .section { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-bottom: 25px; }
+        pre { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 12px 0; font-size: 0.9em; }
+        code { font-family: 'Fira Code', monospace; }
+        .inline { background: #1f2937; padding: 2px 6px; border-radius: 4px; color: #f0883e; font-size: 0.9em; }
+        .tag { display: inline-block; background: #1f6feb33; color: #58a6ff; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-right: 6px; }
+        .arrow { color: #f0883e; font-weight: bold; }
+        .important { background: #1c2333; border-left: 4px solid #f0883e; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+        .success { background: #1a2e1a; border-left: 4px solid #3fb950; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+        .warning { background: #2d2000; border-left: 4px solid #d29922; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        th, td { text-align: left; padding: 8px 12px; border: 1px solid #30363d; }
+        th { background: #1c2333; color: #58a6ff; }
+        ul { margin-left: 20px; margin-bottom: 12px; }
+        li { margin-bottom: 4px; }
+        .highlight { color: #f0883e; }
+        .comment { color: #8b949e; }
+        .string { color: #a5d6ff; }
+        .keyword { color: #ff7b72; }
+        .func { color: #d2a8ff; }
+        .file-ref { font-size: 0.8em; color: #8b949e; margin-top: 4px; margin-bottom: 16px; padding: 4px 8px; border-left: 3px solid #30363d; background: #0d1117; display: inline-block; }
+        .file-ref code { color: #58a6ff; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<h1>Explicación del Proyecto Carritos API</h1>
+<p>Módulos de Choferes, Carritos y Despachos — Estructura, punteros, errores, validaciones y mocks.</p>
+
+<!-- ============ 1. ESTRUCTURA ============ -->
+<div class="section">
+<h2>1. Estructura de los módulos (Choferes, Carritos, Despachos)</h2>
+
+<p>Cada módulo sigue el mismo patrón de 4 capas:</p>
+
+<table>
+    <tr><th>Capa</th><th>Ubicación</th><th>Responsabilidad</th></tr>
+    <tr><td><span class="tag">Modelo</span></td><td><code>internal/models/</code></td><td>Define la estructura de datos y su validación</td></tr>
+    <tr><td><span class="tag">Storage</span></td><td><code>internal/storage/</code></td><td>Acceso a SQLite (GORM). CRUD contra la base de datos</td></tr>
+    <tr><td><span class="tag">Handler</span></td><td><code>internal/handlers/</code></td><td>Recibe HTTP request, valida, llama al storage, responde JSON</td></tr>
+    <tr><td><span class="tag">Router</span></td><td><code>internal/handlers/server.go</code></td><td>Registra las rutas HTTP en chi.NewRouter()</td></tr>
+</table>
+
+<h3>Ejemplo: Choferes</h3>
+<pre><code><span class="comment">// Modelo — define qué es un chofer</span>
+<span class="keyword">type</span> Chofer <span class="keyword">struct</span> {
+    ID       int          <span class="string">`gorm:"primaryKey"`</span>
+    Nombre   string       <span class="string">`gorm:"column:nombre_chofer"`</span>
+    Licencia string       <span class="string">`gorm:"column:licencia;uniqueIndex"`</span>
+    Celular  string       <span class="string">`gorm:"column:celular"`</span>
+    Estado   EstadoChofer <span class="string">`gorm:"column:estado_chofer"`</span>
+}
+
+<span class="comment">// Storage — implementa el CRUD en SQLite</span>
+<span class="keyword">func</span> (a *AlmacenSQLite) <span class="func">GetChoferByID</span>(id <span class="keyword">int</span>) (Chofer, <span class="keyword">error</span>) {
+    <span class="keyword">var</span> c Chofer
+    <span class="keyword">if</span> err := a.db.<span class="func">First</span>(&c, id).Error; err != <span class="keyword">nil</span> {
+        <span class="keyword">return</span> Chofer{}, <span class="func">ErrNotFound</span>
+    }
+    <span class="keyword">return</span> c, <span class="keyword">nil</span>
+}
+
+<span class="comment">// Handler — recibe HTTP, llama al storage, responde</span>
+<span class="keyword">func</span> (h *ChoferHandler) <span class="func">GetByID</span>(w http.ResponseWriter, r *http.Request) {
+    id, _ := strconv.<span class="func">Atoi</span>(chi.<span class="func">URLParam</span>(r, <span class="string">"id"</span>))
+    chofer, err := h.almacen.<span class="func">GetChoferByID</span>(id)
+    <span class="keyword">if</span> err != <span class="keyword">nil</span> {
+        <span class="func">RespondError</span>(w, http.StatusNotFound, err.Error())
+        <span class="keyword">return</span>
+    }
+    <span class="func">RespondJSON</span>(w, http.StatusOK, chofer)
+}</code></pre>
+<div class="file-ref"><code>internal/models/choferes.go:8-15</code> — Modelo Chofer &nbsp;|&nbsp; <code>internal/storage/sqlite_choferes.go:18-27</code> — Storage GetChoferByID &nbsp;|&nbsp; <code>internal/handlers/choferes.go:31-47</code> — Handler GetByID</div>
+
+<div class="important">
+<strong>Patrón que se repite en Choferes, Carritos, Despachos y Horarios:</strong><br>
+Handler recibe HTTP → llama a Storage → Storage usa GORM → Handler responde JSON.
+</div>
+</div>
+
+<!-- ============ 2. PUNTEROS ============ -->
+<div class="section">
+<h2>2. Por qué y dónde se usan punteros</h2>
+
+<p>En Go, los punteros (<code>&</code> y <code>*</code>) se usan para <strong>modificar valores originales</strong> sin copiarlos.</p>
+
+<h3>Caso 1: GORM necesita punteros para escribir</h3>
+<pre><code><span class="keyword">var</span> c Chofer
+a.db.<span class="func">First</span>(&c, id)    <span class="comment">// ← le pasamos &c para que GORM escriba EN c</span></code></pre>
+<div class="file-ref"><code>internal/storage/sqlite_choferes.go:20</code></div>
+<p>Sin el <code>&</code>, GORM crearía una copia y <code>c</code> quedaría vacía.</p>
+
+<h3>Caso 2: Métodos receptores con puntero</h3>
+<pre><code><span class="keyword">func</span> (a *AlmacenSQLite) <span class="func">GetChoferByID</span>(...) { ... }  <span class="comment">// ← a es puntero</span></code></pre>
+<div class="file-ref"><code>internal/storage/sqlite_choferes.go:18</code></div>
+<p>Si el receptor fuera <code>a AlmacenSQLite</code> (sin <code>*</code>), cada método recibiría una <strong>copia</strong> del struct y no podría acceder a la conexión de BD real.</p>
+
+<h3>Caso 3: El campo Chofer del modelo Solicitud</h3>
+<pre><code><span class="keyword">type</span> Solicitud <span class="keyword">struct</span> {
+    Chofer *string <span class="string">`json:"chofer"`</span>  <span class="comment">// ← puntero: puede ser nil (sin chofer asignado)</span>
+}</code></pre>
+<div class="file-ref"><code>internal/models/Solicitudes.go:9</code></div>
+
+<div class="important">
+<strong>Regla simple:</strong><br>
+<code>&</code> antes de una variable = "dame la dirección de memoria"<br>
+<code>*</code> en tipo de función = "este argumento se modifica afuera"<br>
+<code>*</code> en tipo de campo = "puede ser nil"
+</div>
+</div>
+
+<!-- ============ 3. RECURSOS NO ENCONTRADOS ============ -->
+<div class="section">
+<h2>3. Cómo se manejan recursos no encontrados</h2>
+
+<p>El patrón usa <code>storage.ErrNotFound</code> + <code>errors.Is()</code> en el handler.</p>
+
+<h3>Paso 1 — Storage define el error</h3>
+<pre><code><span class="comment">// internal/storage/errores.go</span>
+<span class="keyword">var</span> ErrNotFound = errors.<span class="func">New</span>(<span class="string">"recurso no encontrado"</span>)</code></pre>
+<div class="file-ref"><code>internal/storage/errores.go:5</code></div>
+
+<h3>Paso 2 — Storage lo retorna cuando GORM dice "record not found"</h3>
+<pre><code><span class="keyword">func</span> (a *AlmacenSQLite) <span class="func">GetChoferByID</span>(id <span class="keyword">int</span>) (Chofer, <span class="keyword">error</span>) {
+    <span class="keyword">var</span> c Chofer
+    <span class="keyword">if</span> err := a.db.<span class="func">First</span>(&c, id).Error; err != <span class="keyword">nil</span> {
+        <span class="keyword">if</span> <span class="func">isNotFoundError</span>(err) {  <span class="comment">// detecta el error de GORM</span>
+            <span class="keyword">return</span> Chofer{}, <span class="func">ErrNotFound</span>  <span class="comment">// lo traduce a nuestro error</span>
+        }
+        <span class="keyword">return</span> Chofer{}, err
+    }
+    <span class="keyword">return</span> c, <span class="keyword">nil</span>
+}</code></pre>
+<div class="file-ref"><code>internal/storage/sqlite_choferes.go:18-27</code></div>
+<pre><code><span class="keyword">if</span> err := h.almacen.<span class="func">GetChoferByID</span>(id); err != <span class="keyword">nil</span> {
+    <span class="keyword">if</span> errors.<span class="func">Is</span>(err, storage.ErrNotFound) {
+        <span class="func">RespondError</span>(w, http.StatusNotFound, err.Error())  <span class="comment">// ← 404</span>
+        <span class="keyword">return</span>
+    }
+    <span class="func">RespondError</span>(w, http.StatusInternalServerError, err.Error())  <span class="comment">// ← 500</span>
+}</code></pre>
+<div class="file-ref"><code>internal/handlers/choferes.go:37-45</code></div>
+<strong>Flujo completo:</strong> GORM "record not found" → <code>isNotFoundError()</code> lo detecta → se retorna <code>storage.ErrNotFound</code> → <code>errors.Is()</code> lo identifica → HTTP 404.
+</div>
+</div>
+
+<!-- ============ 4. VALIDACION SERVICE ============ -->
+<div class="section">
+<h2>4. Qué valida el Service antes de guardar</h2>
+
+<p>El Service (si se usa) y el Handler validan antes de llegar al Storage:</p>
+
+<h3>Chofer — se valida en el Modelo</h3>
+<pre><code><span class="keyword">func</span> (c *Chofer) <span class="func">Validate</span>() <span class="keyword">error</span> {
+    <span class="keyword">if</span> c.Nombre == <span class="string">""</span>   { <span class="keyword">return</span> errors.<span class="func">New</span>(<span class="string">"nombre_chofer es requerido"</span>) }
+    <span class="keyword">if</span> c.Licencia == <span class="string">""</span> { <span class="keyword">return</span> errors.<span class="func">New</span>(<span class="string">"licencia es requerida"</span>) }
+    <span class="keyword">if</span> c.Celular == <span class="string">""</span>  { <span class="keyword">return</span> errors.<span class="func">New</span>(<span class="string">"celular es requerido"</span>) }
+    <span class="keyword">if</span> !c.Estado.<span class="func">Valid</span>() { <span class="keyword">return</span> errors.<span class="func">New</span>(<span class="string">"estado_chofer no es valido"</span>) }
+    <span class="keyword">return</span> <span class="keyword">nil</span>
+}</code></pre>
+<div class="file-ref"><code>internal/models/choferes.go:23-29</code></div>
+<pre><code><span class="keyword">func</span> (h *ChoferHandler) <span class="func">Create</span>(w http.ResponseWriter, r *http.Request) {
+    <span class="keyword">var</span> chofer models.Chofer
+    json.<span class="func">NewDecoder</span>(r.Body).<span class="func">Decode</span>(&chofer)  <span class="comment">// decodifica el JSON</span>
+
+    <span class="keyword">if</span> err := chofer.<span class="func">Validate</span>(); err != <span class="keyword">nil</span> {
+        <span class="func">RespondError</span>(w, http.StatusBadRequest, err.Error())  <span class="comment">// ← 400</span>
+        <span class="keyword">return</span>
+    }
+    <span class="comment">// ... ahora sí guarda en la BD</span>
+}</code></pre>
+<div class="file-ref"><code>internal/handlers/choferes.go:49-58</code></div>
+<pre><code><span class="keyword">func</span> <span class="func">validacionSolicitud</span>(s models.Solicitud) <span class="keyword">error</span> {
+    <span class="keyword">if</span> s.Pasajero <= 0 || strings.<span class="func">TrimSpace</span>(s.Origen) == <span class="string">""</span> || strings.<span class="func">TrimSpace</span>(s.Destino) == <span class="string">""</span> {
+        <span class="keyword">return</span> <span class="func">ErrCamposObligatorios</span>
+    }
+    <span class="keyword">return</span> <span class="keyword">nil</span>
+}</code></pre>
+<div class="file-ref"><code>internal/service/Solicitudes.go:56-61</code></div>
+    <tr><th>Módulo</th><th>Qué valida</th><th>Dónde</th></tr>
+    <tr><td>Choferes</td><td>Nombre, Licencia, Celular, Estado no vacíos</td><td><code>models.Chofer.Validate()</code></td></tr>
+    <tr><td>Carritos</td><td>Numero > 0, Capacidad > 0, Estado válido, Color no vacío</td><td><code>models.Carrito.Validate()</code></td></tr>
+    <tr><td>Horarios</td><td>Turno válido (Matutina/Vespertina), formato HH:MM</td><td><code>models.Horario.Validate()</code></td></tr>
+    <tr><td>Despachos</td><td>Fecha formato YYYY-MM-DD, IDs > 0, Pasajeros >= 0</td><td><code>models.DespachoDiario.Validate()</code></td></tr>
+    <tr><td>Solicitudes</td><td>Pasajero > 0, Origen y Destino no vacíos</td><td><code>service.validacionSolicitud()</code></td></tr>
+</table>
+</div>
+
+<!-- ============ 5. TEST CON MOCK ============ -->
+<div class="section">
+<h2>5. Cómo funciona un test con mock</h2>
+
+<p>Un mock <strong>simula</strong> el comportamiento del storage sin tocar la base de datos.</p>
+
+<h3>Paso 1 — Definir el mock</h3>
+<pre><code><span class="keyword">type</span> MockChoferRepository <span class="keyword">struct</span> {
+    mock.Mock  <span class="comment">// ← de testify</span>
+}
+
+<span class="keyword">func</span> (m *MockChoferRepository) <span class="func">GetChoferByID</span>(id <span class="keyword">int</span>) (models.Chofer, <span class="keyword">error</span>) {
+    args := m.<span class="func">Called</span>(id)  <span class="comment">// registra que se llamó con "id"</span>
+    <span class="keyword">return</span> args.<span class="func">Get</span>(0).(models.Chofer), args.<span class="func">Error</span>(1)  <span class="comment">// retorna lo que se configuró</span>
+}</code></pre>
+<div class="file-ref"><code>internal/handlers/choferes_handler_test.go:19-31</code></div>
+<pre><code>esperado := models.Chofer{ID: 1, Nombre: <span class="string">"Luis"</span>}
+mockRepo.<span class="func">On</span>(<span class="string">"GetChoferByID"</span>, 1).<span class="func">Return</span>(esperado, <span class="keyword">nil</span>).<span class="func">Once</span>()</code></pre>
+<div class="file-ref"><code>internal/handlers/choferes_handler_test.go:128-129</code></div>
+<pre><code>req := httptest.<span class="func">NewRequest</span>(<span class="string">"GET"</span>, <span class="string">"/api/v1/choferes/1"</span>, <span class="keyword">nil</span>)
+rr := httptest.<span class="func">NewRecorder</span>()
+router.<span class="func">ServeHTTP</span>(rr, req)  <span class="comment">// ← ejecuta el handler real</span>
+
+<span class="func">require</span>.<span class="func">Equal</span>(t, 200, rr.Code)  <span class="comment">// verifica el código HTTP</span>
+mockRepo.<span class="func">AssertExpectations</span>(t)   <span class="comment">// verifica que se llamó como se esperaba</span></code></pre>
+<div class="file-ref"><code>internal/handlers/choferes_handler_test.go:125-139</code></div>
+<strong>El test NO usa base de datos.</strong> Solo verifica que el handler:
+1. Decodifica correctamente el request<br>
+2. Llama al storage con los argumentos correctos<br>
+3. Retorna el código HTTP y JSON esperados
+</div>
+</div>
+
+<!-- ============ 6. LÍNEA AL AZAR ============ -->
+<div class="section">
+<h2>6. Línea al azar explicada</h2>
+
+<pre><code>_ = json.<span class="func">NewEncoder</span>(w).<span class="func">Encode</span>(payload)</code></pre>
+<div class="file-ref"><code>internal/handlers/responses.go:13</code></div>
+
+<p>Esta línea está en <code>responses.go:13</code>. Se descompone en 3 partes:</p>
+
+<table>
+    <tr><th>Parte</th><th>Qué hace</th></tr>
+    <tr><td><code>json.NewEncoder(w)</code></td><td>Crea un codificador JSON que escribe directamente en el response writer <code>w</code></td></tr>
+    <tr><td><code>.Encode(payload)</code></td><td>Convierte <code>payload</code> a JSON y lo escribe en <code>w</code></td></tr>
+    <tr><td><code>_ = ...</code></td><td>Descarta el error (porque si el cliente ya se desconectó, no hay nada que hacer)</td></tr>
+</table>
+
+<h3>¿Por qué no usamos json.Marshal?</h3>
+<pre><code><span class="comment">// Forma lenta (asigna bytes en memoria):</span>
+datos, _ := json.<span class="func">Marshal</span>(payload)
+w.<span class="func">Write</span>(datos)
+
+<span class="comment">// Forma eficiente (escribe directo al stream):</span>
+json.<span class="func">NewEncoder</span>(w).<span class="func">Encode</span>(payload)</code></pre>
+</div>
+
+<!-- ============ 7. QUÉ PASA SI QUIITO EL ASTERISCO ============ -->
+<div class="section">
+<h2>7. Qué pasa si quito el asterisco (*)</h2>
+
+<h3>Caso 1: Receptor del método</h3>
+<pre><code><span class="comment">// CON puntero — funciona:</span>
+<span class="keyword">func</span> (a *AlmacenSQLite) <span class="func">GetChoferByID</span>(id <span class="keyword">int</span>) (Chofer, <span class="keyword">error</span>) {
+    a.db.<span class="func">First</span>(&c, id)  <span class="comment">// usa la conexión real</span>
+}
+
+<span class="comment">// SIN puntero — ERROR de compilación:</span>
+<span class="keyword">func</span> (a AlmacenSQLite) <span class="func">GetChoferByID</span>(id <span class="keyword">int</span>) (Chofer, <span class="keyword">error</span>) {
+    a.db.<span class="func">First</span>(&c, id)  <span class="comment">// a.db es una COPIA, no la conexión original</span>
+}
+<span class="comment">// El método no puede modificar ni acceder al estado real de "a"</span></code></pre>
+<div class="file-ref"><code>internal/storage/sqlite_choferes.go:18</code> — receptor con puntero vs sin puntero</div>
+
+<div class="warning">
+<strong>Resultado:</strong> Go te da un error de compilación o el código compila pero <code>a.db</code> apunta a una copia del puntero, no a la conexión real de SQLite. Los datos nunca se guardarían.
+</div>
+
+<h3>Caso 2: Campo Chofer en Solicitud</h3>
+<pre><code><span class="comment">// CON puntero — puede ser nil (sin chofer):</span>
+Chofer *string <span class="string">`json:"chofer"`</span>
+
+<span class="comment">// SIN puntero — siempre tiene un valor (string vacío ""):</span>
+Chofer string <span class="string">`json:"chofer"`</span></code></pre>
+<div class="file-ref"><code>internal/models/Solicitudes.go:9</code> — campo puntero vs campo valor</div>
+<p>Si quitas el <code>*</code>, no puedes distinguir entre "sin chofer" y "chofer vacío".</p>
+</div>
+
+<!-- ============ 8. DEFER ============ -->
+<div class="section">
+<h2>8. Qué es defer y dónde se usa</h2>
+
+<p><code>defer</code> ejecuta una función <strong>al finalizar</strong> la función actual, sin importar si hubo error o return.</p>
+
+<h3>Ejemplo en el proyecto (storage/factory.go)</h3>
+<pre><code><span class="keyword">func</span> <span class="func">Inicializar</span>() Recursos {
+    db := <span class="func">abrirGorm</span>()
+
+    <span class="keyword">return</span> Recursos{
+        Almacen: <span class="func">NuevoAlmacenSQLite</span>(db),
+        Cleanup: <span class="keyword">func</span>() {
+            sqlDB, _ := db.<span class="func">DB</span>()
+            sqlDB.<span class="func">Close</span>()
+        },
+    }
+}
+
+<span class="comment">// En main.go se llama defer para cerrar al salir:</span>
+recursos := <span class="func">Inicializar</span>()
+<span class="keyword">defer</span> recursos.<span class="func">Cleanup</span>()  <span class="comment">// se ejecuta cuando main() termina</span></code></pre>
+<div class="file-ref"><code>internal/storage/factory.go:15-25</code> — Inicializar() &nbsp;|&nbsp; <code>cmd/Carritos-api/main.go:50-55</code> — defer Cleanup()</div>
+
+<h3>Ejemplo genérico</h3>
+<pre><code><span class="keyword">func</span> <span class="func">procesar</span>() {
+    archivo := <span class="func">abrirArchivo</span>()
+    <span class="keyword">defer</span> archivo.<span class="func">Close</span>()  <span class="comment">// siempre se cierra, pase lo que pase</span>
+
+    <span class="comment">// ... procesar archivo ...</span>
+    <span class="keyword">if</span> error {
+        <span class="keyword">return</span>  <span class="comment">// defer se ejecuta A PESAR del return</span>
+    }
+}</code></pre>
+<div class="file-ref">Ejemplo genérico — patrón común de <code>defer</code></div>
+
+<div class="important">
+<strong>Regla:</strong> <code>defer</code> se ejecuta cuando la función retorna, en orden LIFO (el último defer se ejecuta primero).
+</div>
+</div>
+
+<!-- ============ 9. TUTORIAL: MOCK RETORNA ERROR ============ -->
+<div class="section">
+<h2>9. Tutorial: Mock que retorna error → handler responde 500</h2>
+
+<p>Vamos a hacer un cambio manual paso a paso:</p>
+
+<h3>Paso 1 — Abre el archivo de test</h3>
+<pre><code>internal/handlers/choferes_handler_test.go</code></pre>
+
+<h3>Paso 2 — Agrega este test después de los existentes</h3>
+<pre><code><span class="keyword">func</span> <span class="func">TestChoferHandlerGetByIDErrorServidor</span>(t *testing.T) {
+    r, mockRepo := <span class="func">setupChoferHandlerTest</span>(t)
+
+    <span class="comment">// Configurar el mock para que retorne un error de BD</span>
+    mockRepo.<span class="func">On</span>(<span class="string">"GetChoferByID"</span>, 50).
+        <span class="func">Return</span>(models.Chofer{}, errors.<span class="func">New</span>(<span class="string">"error de base de datos"</span>)).<span class="func">Once</span>()
+
+    <span class="comment">// Hacer request al endpoint</span>
+    req := httptest.<span class="func">NewRequest</span>(<span class="string">"GET"</span>, <span class="string">"/api/v1/choferes/50"</span>, <span class="keyword">nil</span>)
+    rr := httptest.<span class="func">NewRecorder</span>()
+    r.<span class="func">ServeHTTP</span>(rr, req)
+
+    <span class="comment">// Verificar que el handler respondió 500</span>
+    <span class="func">require</span>.<span class="func">Equal</span>(t, http.StatusInternalServerError, rr.Code)
+
+    <span class="comment">// Verificar que el body contiene el error</span>
+    <span class="keyword">var</span> respuesta <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>
+    json.<span class="func">NewDecoder</span>(rr.Body).<span class="func">Decode</span>(&respuesta)
+    <span class="func">assert</span>.<span class="func">Equal</span>(t, <span class="string">"error de base de datos"</span>, respuesta[<span class="string">"error"</span>])
+
+    <span class="comment">// Verificar que el mock fue llamado</span>
+    mockRepo.<span class="func">AssertExpectations</span>(t)
+}</code></pre>
+<div class="file-ref"><code>internal/handlers/choferes_handler_test.go</code> — agregar después de la línea 165</div>
+
+<h3>Paso 3 — Agrega el import si no está</h3>
+<p>Verifica que en la sección de imports esté <code>"errors"</code>:</p>
+<pre><code><span class="keyword">import</span> (
+    <span class="string">"encoding/json"</span>
+    <span class="string">"errors"</span>       <span class="comment">// ← agregar si no existe</span>
+    <span class="string">"net/http"</span>
+    <span class="string">"net/http/httptest"</span>
+    <span class="string">"strings"</span>
+    <span class="string">"testing"</span>
+    ...
+)</code></pre>
+
+<h3>Paso 4 — Ejecuta el test</h3>
+<pre><code>go test ./internal/handlers/ -run TestChoferHandlerGetByIDErrorServidor -v</code></pre>
+
+<h3>Resultado esperado</h3>
+<pre><code>=== RUN   TestChoferHandlerGetByIDErrorServidor
+--- PASS: TestChoferHandlerGetByIDErrorServidor (0.00s)
+PASS</code></pre>
+
+<div class="success">
+<strong>¿Qué pasó?</strong><br>
+1. El mock simuló un error de base de datos<br>
+2. El handler recibió el error<br>
+3. Como NO era <code>storage.ErrNotFound</code>, entró al <code>else</code> y respondió <strong>500 Internal Server Error</strong><br>
+4. El test verificó que el código HTTP fuera 500 y el mensaje de error coincidiera
+</div>
+</div>
+
+</div>
+</body>
+</html>

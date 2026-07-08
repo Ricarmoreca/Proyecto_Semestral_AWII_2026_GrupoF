@@ -19,7 +19,7 @@ func RespondError(w http.ResponseWriter, status int, message string) {
 
 func statusDeError(err error) int {
 	switch err {
-	case service.ErrUsuarioNoEncontrado, service.ErrSolicitudNoEncontrada, service.ErrChoferNoEncontrado:
+	case service.ErrUsuarioNoEncontrado, service.ErrSolicitudNoEncontrada, service.ErrChoferNoEncontrado, service.ErrMantenimientoNoEncontrado:
 		return http.StatusNotFound
 	case service.ErrUsuarioYaExiste, service.ErrSolicitudNoValida, service.ErrSolicitudYaCerrada, service.ErrEstadoInvalido, service.ErrCamposObligatorios:
 		return http.StatusBadRequest

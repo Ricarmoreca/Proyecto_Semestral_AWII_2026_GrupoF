@@ -1,0 +1,649 @@
+PRUEBAS DE API - Guia para Postman
+====================================
+Proyecto: Carritos-api
+Prefijo base: http://localhost:8080/api/v1
+
+INSTRUCCIONES PARA POSTMAN:
+1. Abre Postman.
+2. Crea una nueva coleccion llamada "Carritos API".
+3. Para cada prueba, crea un nuevo request en la coleccion.
+4. Los endpoints nuevos NO requieren autenticacion.
+5. Los endpoints legacy (usuarios, solicitudes) SI requieren token Bearer.
+   Para esos, primero ejecuta "5.1 Login", copia el token, y en la pestana
+   "Authorization" de cada request legacy selecciona "Bearer Token" y pegalo.
+
+NOTAS IMPORTANTES:
+- Carritos se envian con snake_case: numero_carrito, estado_carrito, etc.
+- Choferes se envian con estilo Go: Nombre, Licencia, Estado, etc.
+- Horarios se envian con estilo Go: Turno, HoraInicio, HoraFin, etc.
+- Despachos se envian con estilo Go: Fecha, NumeroCarrito, IDHorario, etc.
+
+
+Levantar Backend en al terminal:
+ejecutar en orden:
+
+go build ./cmd/Carritos-api
+
+go run ./cmd/Carritos-api
+
+en Postman para generar token:
+Haz un POST a /api/v1/login con cualquier email y password:
+POST http://localhost:8080/api/v1/login
+Content-Type: application/json
+{"email": "test@test.com", "password": "pass"}
+La respuesta será:
+{"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
+
+Como usar el token
+En Postman, para los requests a /usuarios o /solicitudes:
+1. Ve a la pestaña Authorization
+2. En el dropdown "Type", selecciona Bearer Token
+3. Pega el token en el campo de la derecha
+Eso hará que Postman agregue automáticamente el header:
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Nota importante
+El token que devuelve el login es válido por 24 horas. Si expira, solo repites el paso del login para obtener uno nuevo.
+
+
+
+================================================================================
+1. CARRITOS  (/api/v1/carritos)
+================================================================================
+
+--- 1.1 GET /api/v1/carritos ---
+Tipo: CRUD - Listar todos los carritos (sin soft-deleted)
+Method: GET
+URL: http://localhost:8080/api/v1/carritos
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 200 OK, array de carritos
+
+--- 1.2 POST /api/v1/carritos ---
+Tipo: CRUD - Crear un carrito nuevo
+Method: POST
+URL: http://localhost:8080/api/v1/carritos
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "numero_carrito": 201,
+  "estado_carrito": "Disponible",
+  "capacidad_pasajeros": 16,
+  "color": "Gris"
+}
+Respuesta esperada: 201 Created, devuelve el carrito creado
+
+--- 1.3 POST /api/v1/carritos ---
+Tipo: REGLA DE NEGOCIO - Validacion de campos obligatorios
+Method: POST
+URL: http://localhost:8080/api/v1/carritos
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "numero_carrito": 0,
+  "estado_carrito": "Invalido",
+  "capacidad_pasajeros": 0,
+  "color": ""
+}
+Respuesta esperada: 400 Bad Request, error de validacion
+
+--- 1.4 POST /api/v1/carritos ---
+Tipo: REGLA DE NEGOCIO - PK duplicada (ErrConflict)
+Method: POST
+URL: http://localhost:8080/api/v1/carritos
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "numero_carrito": 101,
+  "estado_carrito": "Disponible",
+  "capacidad_pasajeros": 15,
+  "color": "Blanco"
+}
+Respuesta esperada: 409 Conflict, "el recurso ya existe"
+
+--- 1.5 GET /api/v1/carritos/{numero} ---
+Tipo: CRUD - Obtener carrito por numero
+Method: GET
+URL: http://localhost:8080/api/v1/carritos/101
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 200 OK, devuelve el carrito
+
+--- 1.6 GET /api/v1/carritos/{numero} ---
+Tipo: CRUD - Carrito no encontrado
+Method: GET
+URL: http://localhost:8080/api/v1/carritos/999
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 404 Not Found, "recurso no encontrado"
+
+--- 1.7 PUT /api/v1/carritos/{numero} ---
+Tipo: CRUD - Actualizar carrito existente
+Method: PUT
+URL: http://localhost:8080/api/v1/carritos/101
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "estado_carrito": "En Viaje",
+  "capacidad_pasajeros": 15,
+  "color": "Blanco"
+}
+Respuesta esperada: 200 OK, devuelve el carrito actualizado
+
+--- 1.8 PUT /api/v1/carritos/{numero} ---
+Tipo: CRUD - Actualizar carrito inexistente
+Method: PUT
+URL: http://localhost:8080/api/v1/carritos/999
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "estado_carrito": "Disponible",
+  "capacidad_pasajeros": 10,
+  "color": "Rojo"
+}
+Respuesta esperada: 404 Not Found
+
+--- 1.9 DELETE /api/v1/carritos/{numero} ---
+Tipo: CRUD - Eliminar carrito (soft delete)
+Method: DELETE
+URL: http://localhost:8080/api/v1/carritos/201
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 204 No Content
+
+--- 1.10 DELETE /api/v1/carritos/{numero} ---
+Tipo: CRUD - Eliminar carrito inexistente
+Method: DELETE
+URL: http://localhost:8080/api/v1/carritos/999
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 404 Not Found
+
+--- 1.11 GET /api/v1/carritos/{numero}/horarios ---
+Tipo: JOIN - Obtener horarios asignados a un carrito
+Method: GET
+URL: http://localhost:8080/api/v1/carritos/102/horarios
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 200 OK, array con horarios (JOIN carrito_horario + horarios)
+
+--- 1.12 GET /api/v1/carritos/{numero}/horarios ---
+Tipo: REGLA - Carrito inexistente
+Method: GET
+URL: http://localhost:8080/api/v1/carritos/999/horarios
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 404 Not Found
+
+--- 1.13 POST /api/v1/carritos/{numero}/horarios ---
+Tipo: REGLA DE NEGOCIO - Asignar horario a carrito
+Method: POST
+URL: http://localhost:8080/api/v1/carritos/104/horarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "id_horario": 1
+}
+Respuesta esperada: 201 Created, devuelve la relacion
+
+--- 1.14 POST /api/v1/carritos/{numero}/horarios ---
+Tipo: REGLA DE NEGOCIO - Asignacion duplicada (ErrConflict)
+Method: POST
+URL: http://localhost:8080/api/v1/carritos/104/horarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "id_horario": 1
+}
+(Ejecutar solo si 1.13 se ejecuto primero)
+Respuesta esperada: 409 Conflict
+
+--- 1.15 POST /api/v1/carritos/{numero}/horarios ---
+Tipo: REGLA - Carrito o horario inexistente
+Method: POST
+URL: http://localhost:8080/api/v1/carritos/999/horarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "id_horario": 1
+}
+Respuesta esperada: 404 Not Found
+
+--- 1.16 DELETE /api/v1/carritos/{numero}/horarios/{idHorario} ---
+Tipo: REGLA DE NEGOCIO - Desasignar horario de carrito
+Method: DELETE
+URL: http://localhost:8080/api/v1/carritos/104/horarios/1
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 204 No Content
+
+--- 1.17 DELETE /api/v1/carritos/{numero}/horarios/{idHorario} ---
+Tipo: REGLA - Desasignar relacion inexistente
+Method: DELETE
+URL: http://localhost:8080/api/v1/carritos/999/horarios/1
+Headers: (ninguno)
+Body: (ninguno)
+Respuesta esperada: 404 Not Found
+
+================================================================================
+2. HORARIOS  (/api/v1/horarios)
+================================================================================
+
+--- 2.1 GET /api/v1/horarios ---
+Tipo: CRUD - Listar todos los horarios
+Method: GET
+URL: http://localhost:8080/api/v1/horarios
+Respuesta esperada: 200 OK, array de horarios
+
+--- 2.2 POST /api/v1/horarios ---
+Tipo: CRUD - Crear un horario
+Method: POST
+URL: http://localhost:8080/api/v1/horarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Turno": "Matutina",
+  "HoraInicio": "06:00",
+  "HoraFin": "11:00"
+}
+Respuesta esperada: 201 Created
+
+--- 2.3 POST /api/v1/horarios ---
+Tipo: REGLA DE NEGOCIO - Validacion formato HH:MM
+Method: POST
+URL: http://localhost:8080/api/v1/horarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Turno": "Matutina",
+  "HoraInicio": "6:00",
+  "HoraFin": "11:00"
+}
+Respuesta esperada: 400 Bad Request, "hora_inicio debe tener formato HH:MM"
+
+--- 2.4 POST /api/v1/horarios ---
+Tipo: REGLA DE NEGOCIO - Turno invalido
+Method: POST
+URL: http://localhost:8080/api/v1/horarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Turno": "Nocturna",
+  "HoraInicio": "22:00",
+  "HoraFin": "06:00"
+}
+Respuesta esperada: 400 Bad Request, "turno debe ser 'Matutina' o 'Vespertina'"
+
+--- 2.5 GET /api/v1/horarios/{id} ---
+Tipo: CRUD - Obtener horario por ID
+Method: GET
+URL: http://localhost:8080/api/v1/horarios/1
+Respuesta esperada: 200 OK
+
+--- 2.6 GET /api/v1/horarios/{id} ---
+Tipo: CRUD - Horario no encontrado
+Method: GET
+URL: http://localhost:8080/api/v1/horarios/999
+Respuesta esperada: 404 Not Found
+
+--- 2.7 PUT /api/v1/horarios/{id} ---
+Tipo: CRUD - Actualizar horario
+Method: PUT
+URL: http://localhost:8080/api/v1/horarios/1
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Turno": "Matutina",
+  "HoraInicio": "07:30",
+  "HoraFin": "12:30"
+}
+Respuesta esperada: 200 OK
+
+--- 2.8 DELETE /api/v1/horarios/{id} ---
+Tipo: CRUD - Eliminar horario (borrado fisico)
+Method: DELETE
+URL: http://localhost:8080/api/v1/horarios/3
+(Ejecutar solo si 2.2 se ejecuto primero, para tener un ID 3)
+Respuesta esperada: 204 No Content
+
+--- 2.9 GET /api/v1/horarios/{id}/carritos ---
+Tipo: JOIN - Carritos asignados a un horario
+Method: GET
+URL: http://localhost:8080/api/v1/horarios/2/carritos
+Respuesta esperada: 200 OK, array con carritos (JOIN carrito_horario + carritos)
+
+--- 2.10 GET /api/v1/horarios/{id}/carritos ---
+Tipo: REGLA - Horario inexistente
+Method: GET
+URL: http://localhost:8080/api/v1/horarios/999/carritos
+Respuesta esperada: 404 Not Found
+
+================================================================================
+3. CHOFERES  (/api/v1/choferes)
+================================================================================
+
+--- 3.1 GET /api/v1/choferes ---
+Tipo: CRUD - Listar todos los choferes
+Method: GET
+URL: http://localhost:8080/api/v1/choferes
+Respuesta esperada: 200 OK, array de choferes
+
+--- 3.2 POST /api/v1/choferes ---
+Tipo: CRUD - Crear un chofer
+Method: POST
+URL: http://localhost:8080/api/v1/choferes
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Nombre": "Maria Lopez",
+  "Licencia": "X999888",
+  "Celular": "0997778889",
+  "Estado": "Disponible"
+}
+Respuesta esperada: 201 Created
+
+--- 3.3 POST /api/v1/choferes ---
+Tipo: REGLA DE NEGOCIO - Validacion de campos obligatorios
+Method: POST
+URL: http://localhost:8080/api/v1/choferes
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Nombre": "",
+  "Licencia": "",
+  "Celular": "",
+  "Estado": "Invalido"
+}
+Respuesta esperada: 400 Bad Request, error de validacion
+
+--- 3.4 POST /api/v1/choferes ---
+Tipo: REGLA DE NEGOCIO - Licencia duplicada (ErrConflict)
+Method: POST
+URL: http://localhost:8080/api/v1/choferes
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Nombre": "Otro",
+  "Licencia": "A123456",
+  "Celular": "0990000000",
+  "Estado": "Disponible"
+}
+Respuesta esperada: 409 Conflict, "el recurso ya existe"
+
+--- 3.5 GET /api/v1/choferes/{id} ---
+Tipo: CRUD - Obtener chofer por ID
+Method: GET
+URL: http://localhost:8080/api/v1/choferes/1
+Respuesta esperada: 200 OK
+
+--- 3.6 GET /api/v1/choferes/{id} ---
+Tipo: CRUD - Chofer no encontrado
+Method: GET
+URL: http://localhost:8080/api/v1/choferes/999
+Respuesta esperada: 404 Not Found
+
+--- 3.7 PUT /api/v1/choferes/{id} ---
+Tipo: CRUD - Actualizar chofer
+Method: PUT
+URL: http://localhost:8080/api/v1/choferes/1
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Nombre": "Carlos Mena Updated",
+  "Licencia": "A123456",
+  "Celular": "0991112223",
+  "Estado": "En Ruta"
+}
+Respuesta esperada: 200 OK
+
+--- 3.8 DELETE /api/v1/choferes/{id} ---
+Tipo: CRUD - Eliminar chofer (borrado fisico)
+Method: DELETE
+URL: http://localhost:8080/api/v1/choferes/4
+(Ejecutar solo si 3.2 se ejecuto primero)
+Respuesta esperada: 204 No Content
+
+================================================================================
+4. DESPACHOS DIARIOS  (/api/v1/despachos-diarios)
+================================================================================
+
+--- 4.1 GET /api/v1/despachos-diarios ---
+Tipo: CRUD - Listar todos los despachos
+Method: GET
+URL: http://localhost:8080/api/v1/despachos-diarios
+Respuesta esperada: 200 OK, array de despachos
+
+--- 4.2 POST /api/v1/despachos-diarios ---
+Tipo: CRUD - Crear un despacho diario
+Method: POST
+URL: http://localhost:8080/api/v1/despachos-diarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Fecha": "2026-07-05",
+  "NumeroCarrito": 101,
+  "IDHorario": 1,
+  "IDChofer": 1,
+  "PasajerosActuales": 10
+}
+Respuesta esperada: 201 Created
+
+--- 4.3 POST /api/v1/despachos-diarios ---
+Tipo: REGLA DE NEGOCIO - Validacion de campos
+Method: POST
+URL: http://localhost:8080/api/v1/despachos-diarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Fecha": "invalida",
+  "NumeroCarrito": -1,
+  "IDHorario": -1,
+  "IDChofer": -1,
+  "PasajerosActuales": -1
+}
+Respuesta esperada: 400 Bad Request, error de validacion
+
+--- 4.4 POST /api/v1/despachos-diarios ---
+Tipo: REGLA DE NEGOCIO - FK carrito inexistente
+Method: POST
+URL: http://localhost:8080/api/v1/despachos-diarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Fecha": "2026-07-05",
+  "NumeroCarrito": 999,
+  "IDHorario": 1,
+  "IDChofer": 1,
+  "PasajerosActuales": 5
+}
+Respuesta esperada: 404 Not Found, "recurso no encontrado"
+
+--- 4.5 POST /api/v1/despachos-diarios ---
+Tipo: REGLA DE NEGOCIO - FK horario inexistente
+Method: POST
+URL: http://localhost:8080/api/v1/despachos-diarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Fecha": "2026-07-05",
+  "NumeroCarrito": 101,
+  "IDHorario": 999,
+  "IDChofer": 1,
+  "PasajerosActuales": 5
+}
+Respuesta esperada: 404 Not Found
+
+--- 4.6 POST /api/v1/despachos-diarios ---
+Tipo: REGLA DE NEGOCIO - FK chofer inexistente
+Method: POST
+URL: http://localhost:8080/api/v1/despachos-diarios
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Fecha": "2026-07-05",
+  "NumeroCarrito": 101,
+  "IDHorario": 1,
+  "IDChofer": 999,
+  "PasajerosActuales": 5
+}
+Respuesta esperada: 404 Not Found
+
+--- 4.7 GET /api/v1/despachos-diarios/{id} ---
+Tipo: CRUD - Obtener despacho por ID
+Method: GET
+URL: http://localhost:8080/api/v1/despachos-diarios/1
+Respuesta esperada: 200 OK
+
+--- 4.8 PUT /api/v1/despachos-diarios/{id} ---
+Tipo: CRUD - Actualizar despacho
+Method: PUT
+URL: http://localhost:8080/api/v1/despachos-diarios/1
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "Fecha": "2026-07-05",
+  "NumeroCarrito": 101,
+  "IDHorario": 1,
+  "IDChofer": 1,
+  "PasajerosActuales": 15
+}
+Respuesta esperada: 200 OK
+
+--- 4.9 DELETE /api/v1/despachos-diarios/{id} ---
+Tipo: CRUD - Eliminar despacho (borrado fisico)
+Method: DELETE
+URL: http://localhost:8080/api/v1/despachos-diarios/3
+(Ejecutar solo si 4.2 se ejecuto primero, para tener un ID 3)
+Respuesta esperada: 204 No Content
+
+================================================================================
+5. ENDPOINTS LEGACY CON TOKEN
+================================================================================
+
+--- 5.1 POST /api/v1/login ---
+Tipo: AUTENTICACION - Obtener token JWT
+Method: POST
+URL: http://localhost:8080/api/v1/login
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "email": "test@test.com",
+  "password": "pass"
+}
+Respuesta esperada: 200 OK, {"token":"eyJ..."}
+Instruccion: Copia el token (sin comillas) y usalo en los endpoints 5.2 a 5.4
+en la pestana Authorization -> Tipo: Bearer Token -> pegar el token.
+
+--- 5.2 GET /api/v1/usuarios ---
+Tipo: CRUD legacy - Listar usuarios (requiere token)
+Method: GET
+URL: http://localhost:8080/api/v1/usuarios
+Auth: Bearer Token (pegar token del paso 5.1)
+Respuesta esperada: 200 OK, array de usuarios
+
+--- 5.3 POST /api/v1/usuarios ---
+Tipo: CRUD legacy - Crear usuario (requiere token)
+Method: POST
+URL: http://localhost:8080/api/v1/usuarios
+Auth: Bearer Token (pegar token del paso 5.1)
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "nombre": "Nuevo",
+  "rol": "estudiante",
+  "matricula": "2026004"
+}
+Respuesta esperada: 201 Created
+
+--- 5.4 GET /api/v1/solicitudes ---
+Tipo: CRUD legacy - Listar solicitudes (requiere token)
+Method: GET
+URL: http://localhost:8080/api/v1/solicitudes
+Auth: Bearer Token (pegar token del paso 5.1)
+Respuesta esperada: 200 OK, array de solicitudes
+
+================================================================================
+6. MIDDLEWARE AuthToken (NO APLICADO A RUTAS)
+================================================================================
+El middleware AuthToken existe en internal/middleware/auth_token.go pero NO esta
+aplicado a ninguna ruta. Solo se usa en tests. Su funcionamiento esperado es:
+  - Header: Authorization: Bearer token-super-seguro-uleam-2026
+  - Respuesta si coincide: el handler siguiente se ejecuta normalmente
+  - Respuesta si NO coincide: 401 {"error":"no autorizado"}
+
+================================================================================
+7. PANIC TEST
+================================================================================
+--- GET /api/v1/provocarerror ---
+Tipo: TEST - Verificar que chi.Recoverer captura panics
+Method: GET
+URL: http://localhost:8080/api/v1/provocarerror
+Respuesta esperada: 500 Internal Server Error (capturado por Recoverer)
+
+===============================================================================
+8. PRUEBAS UNITARIAS CON TESTIFY
+===============================================================================
+
+Se crearon 5 archivos de prueba que usan la libreria github.com/stretchr/testify
+con las siguientes funcionalidades:
+
+  8.1 Testify Assert: aserciones con mensajes descriptivos (assert.Equal, assert.Len, assert.Empty, assert.ErrorIs)
+  8.2 Testify Require: aserciones que detienen el test inmediatamente (require.NoError, require.Equal)
+  8.3 Testify Mock: creacion de mocks con validacion de llamadas esperadas (mock.On, mock.AssertExpectations)
+
+Archivos de prueba creados y sus casos:
+
+  1. internal/storage/tests/sqlite_carritos_test.go (6 tests):
+     - TestCarritoSQLite_CrearYObtener: crea y obtiene un carrito por numero
+     - TestCarritoSQLite_GetCarritoByNumero_NoEncontrado: busca carrito inexistente
+     - TestCarritoSQLite_ListarVacio: lista carritos en tabla vacia
+     - TestCarritoSQLite_Actualizar: actualiza el estado de un carrito
+     - TestCarritoSQLite_Eliminar: elimina (soft delete) y verifica que no se encuentre
+     - TestCarritoSQLite_CrearDuplicatePK: inserta PK duplicada y espera error
+
+  2. internal/storage/tests/sqlite_choferes_test.go (5 tests):
+     - TestChoferSQLite_CrearYObtener: crea chofer y lo obtiene por ID
+     - TestChofersQLite_GetChoferByLicencia_NoEncontrado: busca por licencia inexistente
+     - TestChofersSQLite_ListarVacio: lista choferes en tabla vacia
+     - TestChoferSQLite_Actualizar: actualiza el nombre de un chofer
+     - TestChoferSQLite_Eliminar: elimina y verifica que no se encuentre
+
+  3. internal/storage/tests/sqlite_horarios_test.go (5 tests):
+     - TestHorarioSQLite_CrearYObtener: crea horario y lo obtiene por ID
+     - TestHorarioSQLite_GetHorarioByID_NoEncontrado: busca horario inexistente por ID
+     - TestHorarioSQLite_ListarVacio: lista horarios en tabla vacia
+     - TestHorarioSQLite_Actualizar: actualiza la hora de fin de un horario
+     - TestHorarioSQLite_Eliminar: elimina y verifica que no se encuentre
+
+  4. internal/storage/tests/sqlite_despachos_test.go (6 tests):
+     - TestDespachoSQLite_CrearYObtener: crea despacho y lo obtiene por ID
+     - TestDespachoSQLite_GetDespachoByID_NoEncontrado: busca despacho inexistente
+     - TestDespachoSQLite_ListarVacio: lista despachos en tabla vacia
+     - TestDespachoSQLite_Actualizar: actualiza pasajeros actuales de un despacho
+     - TestDespachoSQLite_ActualizarNoEncontrado: actualiza despacho inexistente
+     - TestDespachoSQLite_Eliminar: elimina y verifica que no se encuentre
+
+  5. internal/handlers/choferes_handler_test.go (5 tests - con testify/mock):
+     - TestChoferHandler_Listar: mock GetAllChoferes, verifica lista en JSON
+     - TestChoferHanler_Crear: mock CreateChofer, verifica HTTP 201 Created
+     - TestChoferHandlerGetByID: mock GetChoferByID, verifica respuesta JSON
+     - TestChoferHandlerGetByIDNoEncontrado: mock devuelve ErrNotFound, verifica HTTP 404
+     - TestChoferHandlerCrearValidationError: envia campos invalidos, verifica HTTP 400
+
+Como ejecutar las pruebas:
+
+  1. Ejecutar todos los tests del proyecto:
+     go test ./... -v
+
+  2. Ejecutar tests de storage (unit tests con SQLite en memoria):
+     go test ./internal/storage/tests/ -v
+
+  3. Ejecutar tests de handlers (con testify/mock):
+     go test ./internal/handlers/ -v
+
+  4. Ejecutar un test en especifico por nombre:
+     go test ./internal/storage/tests/ -run TestCarritoSQLite_CrearYObtener -v
+     go test ./internal/handlers/ -run TestChoferHandler_Listar -v
+
+  5. Ver cobertura de codigo:
+     go test ./internal/storage/tests/ -cover
+     go test ./internal/handlers/ -cover

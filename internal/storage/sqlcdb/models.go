@@ -8,6 +8,43 @@ import (
 	"database/sql"
 )
 
+type Carrito struct {
+	NumeroCarrito      int64
+	EstadoCarrito      string
+	CapacidadPasajeros int64
+	Color              string
+}
+
+type CarritoHorario struct {
+	NumeroCarrito  int64
+	IDHorario      int64
+	HoraAsignacion string
+}
+
+type Chofere struct {
+	IDChofer     int64
+	NombreChofer string
+	Licencia     string
+	Celular      string
+	EstadoChofer string
+}
+
+type DespachosDiario struct {
+	IDDespacho        int64
+	Fecha             string
+	NumeroCarrito     int64
+	IDHorario         int64
+	IDChofer          int64
+	PasajerosActuales int64
+}
+
+type Horario struct {
+	IDHorario  int64
+	Turno      string
+	HoraInicio string
+	HoraFin    string
+}
+
 type Solicitude struct {
 	ID       int64
 	Pasajero string

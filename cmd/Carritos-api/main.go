@@ -24,7 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatal("no se pudo abrir la base de datos: ", err)
 	}
-	if err := gdb.AutoMigrate(&models.Usuario{}, &models.Solicitud{}, &models.UsuarioRepo{}); err != nil {
+	if err := gdb.AutoMigrate(&models.Usuario{}, &models.Solicitud{}, &models.UsuarioRepo{}, &models.Carrito{}, &models.Chofer{}, &models.DespachoDiario{}, &models.Horario{}, &models.Mantenimiento{}); err != nil {
 		log.Fatal("falló AutoMigrate: ", err)
 	}
 	almacenGorm := storage.NuevoAlmacenSQLite(gdb)
@@ -53,7 +53,12 @@ func main() {
 	authService := service.NuevoAuthService(usuarioRepo)
 	usuarioService := service.NewUsuarioService(almacen)
 	solicitudService := service.NewSolicitudService(almacen)
-	servidor := handlers.NewServer(usuarioService, solicitudService, authService)
+	servidor := handlers.NewServer(usuarioService, solicitudService, authService, almacen)
+	carritoHandler := handlers.NewCarritoHandler(almacen)
+	choferHandler := handlers.NewChoferHandler(almacen)
+	despachoHandler := handlers.NewDespachoDiarioHandler(almacen)
+	horarioHandler := handlers.NewHorarioHandler(almacen)
+	mantenimientoHandler := handlers.NewMantenimientoHandler(almacen)
 
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
@@ -77,6 +82,50 @@ func main() {
 			r.Put("/solicitudes/{id}", servidor.ActualizarSolicitud)
 			r.Get("/solicitudes/{id}", servidor.ObtenerSolicitud)
 			r.Delete("/solicitudes/{id}", servidor.EliminarSolicitud)
+
+			r.Route("/carritos", func(r chi.Router) {
+				r.Get("/carritos", carritoHandler.ListarCarritos)
+				r.Post("/carritos", carritoHandler.CrearCarrito)
+				r.Get("/carritos/{numero}", carritoHandler.ObtenerCarrito)
+				r.Put("/carritos/{numero}", carritoHandler.ActualizarCarrito)
+				r.Delete("/carritos/{numero}", carritoHandler.EliminarCarrito)
+				r.Get("/carritos/{numero}/horarios", carritoHandler.GetHorarios)
+				r.Post("/carritos/{numero}/horarios", carritoHandler.AsignarHorario)
+				r.Delete("/carritos/{numero}/horarios/{idHorario}", carritoHandler.DesasignarHorario)
+			})
+
+			r.Route("/horarios", func(r chi.Router) {
+				r.Get("/horarios", horarioHandler.ListarHorarios)
+				r.Post("/horarios", horarioHandler.CrearHorario)
+				r.Get("/horarios/{id}", horarioHandler.ObtenerHorario)
+				r.Put("/horarios/{id}", horarioHandler.ActualizarHorario)
+				r.Delete("/horarios/{id}", horarioHandler.EliminarHorario)
+				r.Get("/horarios/{id}/carritos", horarioHandler.GetCarritos)
+			})
+
+			r.Route("/choferes", func(r chi.Router) {
+				r.Get("/choferes", choferHandler.ListarChoferes)
+				r.Post("/choferes", choferHandler.CrearChofer)
+				r.Get("/choferes/{id}", choferHandler.ObtenerChofer)
+				r.Put("/choferes/{id}", choferHandler.ActualizarChofer)
+				r.Delete("/choferes/{id}", choferHandler.EliminarChofer)
+			})
+
+			r.Route("/despachos", func(r chi.Router) {
+				r.Get("/despachos", despachoHandler.ListarDespachos)
+				r.Post("/despachos", despachoHandler.CrearDespacho)
+				r.Get("/despachos/{id}", despachoHandler.ObtenerDespacho)
+				r.Put("/despachos/{id}", despachoHandler.ActualizarDespacho)
+				r.Delete("/despachos/{id}", despachoHandler.EliminarDespacho)
+			})
+
+			r.Route("/mantenimientos", func(r chi.Router) {
+				r.Get("/mantenimientos", mantenimientoHandler.ListarMantenimientos)
+				r.Post("/mantenimientos", mantenimientoHandler.CrearMantenimiento)
+				r.Get("/mantenimientos/{id}", mantenimientoHandler.ObtenerMantenimiento)
+				r.Put("/mantenimientos/{id}", mantenimientoHandler.ActualizarMantenimiento)
+				r.Delete("/mantenimientos/{id}", mantenimientoHandler.EliminarMantenimiento)
+			})
 		})
 
 		r.Get("/provocarerror", func(w http.ResponseWriter, r *http.Request) {
