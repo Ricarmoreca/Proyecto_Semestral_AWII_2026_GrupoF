@@ -65,7 +65,7 @@ func main() {
 	r.Use(chimw.Recoverer)
 	r.Use(middleware.CORS)
 
-	r.Route("/api/v1", func(r chi.Router) {
+	r.Route("/api/v5", func(r chi.Router) {
 		r.Post("/auth/register", servidor.Registrar)
 		r.Post("/login", servidor.Login)
 		r.Group(func(r chi.Router) {
@@ -133,6 +133,12 @@ func main() {
 		})
 	})
 
+	// Servir el frontend
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "frontend/index.html")
+	})
+
 	log.Println("Servidor escuchando en http://localhost:8080")
+	log.Println("Frontend disponible en http://localhost:8080/")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
