@@ -37,7 +37,7 @@ func (m *mockSolicitudRepo) AsignarChofer(id int, chofer string) (models.Solicit
 
 func TestCrearSolicitudInvalidaNoLlegaRepositorio(t *testing.T) {
 	repo := &mockSolicitudRepo{}
-	service := NewSolicitudService(repo)
+	service := NewSolicitudesService(repo)
 
 	_, err := service.Crear(models.Solicitud{
 		Pasajero: 0,
