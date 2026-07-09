@@ -11,7 +11,7 @@ import (
 )
 
 type ChoferHandler struct {
-	almacen storage.Almacenes
+	almacen storage.Almacen
 }
 
 func NewChoferHandler(almacen storage.Almacen) *ChoferHandler {
