@@ -275,5 +275,5 @@ func TestChoferHandlerCrearValidationError(t *testing.T) {
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
-	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, http.StatusMadRequest, rr.Code)
 }
