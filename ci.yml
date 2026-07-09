@@ -37,13 +37,3 @@ jobs:
 
       - name: Construir imagen Docker
         run: docker build -t carritos-api:ci .
-
-  docker:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    steps:
-      - name: Clonar el repositorio
-        uses: actions/checkout@v4
-
-      - name: Construir imagen
-        run: docker build -t proyecto-api:ci .
